@@ -1,0 +1,12 @@
+[package]
+name = "celtchar"
+version = "0.1.0"
+authors = ["Thomas Letan <contact@thomasletan.fr>"]
+
+[dependencies]
+toml = "0.4"
+clap = "2.32"
+
+[dependencies.ogmarkup]
+git = "https://git.sr.ht/~lthms/ogmarkup/"
+rev = "326b6e7c0d4ad366d7ecb6358aae742d9533fb63"
