@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::env::current_dir;
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
 use ogmarkup::typography::Typography;
 
@@ -13,9 +13,9 @@ const PROJECT_FILE: &'static str = "Book.toml";
 #[derive(Debug)]
 pub struct Error(pub String);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Chapter<A> {
-    pub title: String,
+    pub title: Option<String>,
     pub content: A,
 }
 
@@ -52,7 +52,7 @@ impl Chapter<Vec<PathBuf>> {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Project<A> {
     pub author: String,
     pub title: String,

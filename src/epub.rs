@@ -46,7 +46,7 @@ fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec
     chapters.iter().enumerate()
         .map(|(idx, c)| {
             let mut ctx = Context::new();
-            ctx.insert("content", &c.content);
+            ctx.insert("chapter", &c);
 
             let path : String = format!("{}.xhtml", idx);
 

@@ -2,6 +2,11 @@
   <head>
   </head>
   <body>
-    {{ content }}
+    {% if chapter.title %}
+    <h1>
+      {{ chapter.title }}
+    </h1>
+    {% endif %}
+    {{ chapter.content }}
   </body>
 </html>
