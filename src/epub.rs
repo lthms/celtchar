@@ -83,5 +83,12 @@ pub fn generate(project : &Project<String>) -> Result<(), Error> {
         &PathBuf::from("OEBPS/content.opf")
     )?;
 
+    write_template_to(
+        &tera,
+        "main.css",
+        &Context::new(),
+        &PathBuf::from("OEBPS/Style/main.css")
+    )?;
+
     Ok(())
 }

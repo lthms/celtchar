@@ -1,5 +1,6 @@
-<html>
+<html lang="fr">
   <head>
+    <link rel="stylesheet" type="text/css" href="../Style/main.css" />
   </head>
   <body>
     {% if chapter.title %}
@@ -7,6 +8,8 @@
       {{ chapter.title }}
     </h1>
     {% endif %}
-    {{ chapter.content }}
+    <div class="ogmarkup">
+      {{ chapter.content }}
+    </div>
   </body>
 </html>
