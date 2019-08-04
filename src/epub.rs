@@ -100,6 +100,21 @@ fn install_fonts(assets : &PathBuf, fonts : &Vec<&str>) -> Result<(), Error> {
     Ok(())
 }
 
+fn install_cover(cover : &PathBuf) -> Result<String, Error> {
+    let extension = cover.extension()
+        .ok_or(Error(String::from("cover lacks an extension")))?
+        .to_str()
+        .ok_or(Error(String::from("cover extension is not valid utf-8")))?;
+
+    let mut dst = PathBuf::from("OEBPS");
+    dst.push(format!("cover.{}", extension));
+
+    std::fs::copy(cover, dst)
+        .map_err(|_| Error(format!("cannot copy {:?}", cover)))?;
+
+    Ok(extension.into())
+}
+
 pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Error> {
 
     let tera = compile_templates!(template_dir(assets)?.as_str());
@@ -116,6 +131,10 @@ pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Err
         &PathBuf::from("OEBPS/Style/main.css")
     )?;
 
+    let cover_extension = project.cover.clone().map(|cov| install_cover(&cov))
+    // from Option<Result<_, E>> to Result<Option<_>, E>
+        .map_or(Ok(None), |r| r.map(Some))?;
+
     let fonts = vec![
         "et-book-roman-line-figures.ttf",
         "et-book-bold-line-figures.ttf",
@@ -127,6 +146,7 @@ pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Err
     let mut ctx = Context::new();
     ctx.insert("title", &project.title);
     ctx.insert("author", &project.author);
+    ctx.insert("cover_extension", &cover_extension);
     ctx.insert("files", &files);
     ctx.insert("fonts", &fonts);
     write_template_to(

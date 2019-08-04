@@ -6,6 +6,9 @@
     <dc:creator opf:role="aut">{{ author }}</dc:creator>
     <dc:type>text</dc:type>
     <dc:description>Ceci est une description</dc:description>
+    {% if cover_extension %}
+    <meta name="cover" content="coverimage"/>
+    {% endif %}
   </metadata>
   <manifest>
     <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml" />
@@ -16,6 +19,9 @@
     {% for f in files %}
     <item href="Text/{{ f }}" id="{{ f }}" media-type="application/xhtml+xml" />
     {% endfor %}
+    {% if cover_extension %}
+    <item href="cover.{{ cover_extension }}" id="coverimage" media-type="image/jpeg" properties="cover-image" />
+    {% endif %}
   </manifest>
   <spine toc="ncx">
     {% for f in files %}

@@ -56,7 +56,8 @@ impl Chapter<Vec<PathBuf>> {
 pub struct Project<A> {
     pub author: String,
     pub title: String,
-    pub chapters: Vec<Chapter<A>>
+    pub chapters: Vec<Chapter<A>>,
+    pub cover: Option<PathBuf>,
 }
 
 impl Project<Vec<PathBuf>> {
@@ -108,6 +109,11 @@ impl Project<Vec<PathBuf>> {
     {
         let author = self.author;
         let title = self.title;
+        let cover = self.cover
+            .map(|x| fs::canonicalize(&x)
+                 .map_err(|_| Error(String::from("cannot compute a canonical path for the cover"))))
+            // from Option<Result<_, E>> to Result<Option<_>, E>
+            .map_or(Ok(None), |r| r.map(Some))?;
 
         self.chapters.into_iter()
             .map(|chapter| chapter.load_and_render(typo))
@@ -115,7 +121,8 @@ impl Project<Vec<PathBuf>> {
             .map(|x| Project {
                 author: author,
                 title: title,
-                chapters: x
+                chapters: x,
+                cover: cover,
             })
     }
 }
