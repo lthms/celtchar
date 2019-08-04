@@ -1,8 +1,12 @@
-use crate::project::{Error, Project, Chapter};
+use std::fs;
 use std::fs::{create_dir_all};
 use std::path::{Path, PathBuf};
+
 use tera::{Tera, Context};
 use serde_json::json;
+
+use crate::error::{Raise, Error};
+use crate::project::{Project, Chapter};
 
 const EPUB_MIMETYPE: &'static str = "application/epub+zip";
 
@@ -11,21 +15,19 @@ fn write_template_to(tera : &Tera, template : &str, ctx : &Context, path : &Path
 
     if !directory.exists() {
         create_dir_all(directory)
-            .map_err(|_| Error(format!("cannot create directory {:?}", directory)))?;
+            .or_raise(&format!("cannot create directory {:?}", directory))?;
     }
 
     let content = tera.render(template, ctx)
-        .map_err(|e| Error(format!("cannot render {}: {}", template, e)))?;
+        .or_raise(&format!("cannot render {}", template))?;
 
-    std::fs::write(path, content)
-        .map_err(|_| Error(format!("cannot create {:?}", path)))?;
+    fs::write(path, content).or_raise(&format!("cannot create {:?}", path))?;
 
     Ok(())
 }
 
 fn create_mimetype() -> Result<(), Error> {
-    std::fs::write("mimetype", EPUB_MIMETYPE)
-        .map_err(|_| Error(String::from("cannot create mimetype")))?;
+    fs::write("mimetype", EPUB_MIMETYPE).or_raise("cannot create mimetype")?;
 
     Ok(())
 }
@@ -85,18 +87,13 @@ fn fonts_dir(assets : &PathBuf) -> Result<PathBuf, Error> {
 }
 
 fn install_fonts(assets : &PathBuf, fonts : &Vec<&str>) -> Result<(), Error> {
-    create_dir_all("OEBPS/Fonts/")
-        .map_err(|_| Error(String::from("cannot create directory OEBPS/Fonts/")))?;
+    create_dir_all("OEBPS/Fonts/").or_raise("cannot create directory OEBPS/Fonts/")?;
 
     for f in fonts {
-        let mut src = fonts_dir(assets)?;
-        src.push(f);
-        let mut dst = PathBuf::from("OEBPS/Fonts");
-        dst.push(f);
+        let src = fonts_dir(assets)?.join(f);
+        let dst = PathBuf::from("OEBPS/Fonts").join(f);
 
-        std::fs::copy(src, dst)
-            .map_err(|_| Error(format!("cannot copy {}", f)))?;
-
+        fs::copy(src, dst).or_raise(&format!("cannot copy {}", f))?;
     }
 
     Ok(())
@@ -104,15 +101,13 @@ fn install_fonts(assets : &PathBuf, fonts : &Vec<&str>) -> Result<(), Error> {
 
 fn install_cover(cover : &PathBuf) -> Result<String, Error> {
     let extension = cover.extension()
-        .ok_or(Error(String::from("cover lacks an extension")))?
+        .or_raise("cover lacks an extension")?
         .to_str()
-        .ok_or(Error(String::from("cover extension is not valid utf-8")))?;
+        .or_raise("cover extension is not valid utf-8")?;
 
-    let mut dst = PathBuf::from("OEBPS");
-    dst.push(format!("cover.{}", extension));
+    let dst = PathBuf::from("OEBPS").join(format!("cover.{}", extension));
 
-    std::fs::copy(cover, dst)
-        .map_err(|_| Error(format!("cannot copy {:?}", cover)))?;
+    fs::copy(cover, dst).or_raise(&format!("cannot copy {:?}", cover))?;
 
     Ok(extension.into())
 }

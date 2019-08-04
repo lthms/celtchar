@@ -1,17 +1,15 @@
 use std::fs;
 use std::path::PathBuf;
-use std::env::current_dir;
+use std::env::{current_dir, set_current_dir};
 
 use serde_derive::{Deserialize, Serialize};
 
 use ogmarkup::typography::Typography;
 
 use crate::render::Html;
+use crate::error::{Raise, Error};
 
 const PROJECT_FILE: &'static str = "Book.toml";
-
-#[derive(Debug)]
-pub struct Error(pub String);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chapter<A> {
@@ -26,11 +24,12 @@ fn compile_file <'input, T> (
 where
     T : Typography,
 {
-    let input = fs::read_to_string(path.as_path()).map_err(|_| Error(format!("cannot open {:?}", path)))?;
+    let input = fs::read_to_string(path.as_path())
+        .or_raise(&format!("cannot open {:?}", path))?;
 
     ogmarkup::compile(input.as_str(), typo)
         .map(|x: Html| x.to_string())
-        .map_err(|_| Error(format!("cannot render {:?}", path)))
+        .or_raise(&format!("cannot render {:?}", path))
 }
 
 impl Chapter<Vec<PathBuf>> {
@@ -62,8 +61,7 @@ pub struct Project<A> {
 
 impl Project<Vec<PathBuf>> {
     pub fn cd_root() -> Result<(), Error> {
-        let mut cwd: PathBuf = current_dir()
-            .map_err(|_| Error(String::from("cannot get current directory")))?;
+        let mut cwd: PathBuf = current_dir().or_raise("cannot get current directory")?;
 
         loop {
             cwd.push(PROJECT_FILE); // (*)
@@ -71,8 +69,8 @@ impl Project<Vec<PathBuf>> {
             if cwd.exists() {
                 cwd.pop();
 
-                std::env::set_current_dir(cwd.as_path())
-                    .map_err(|_| Error(format!("cannot set current directory to {:?}", cwd)))?;
+                set_current_dir(cwd.as_path())
+                    .or_raise(&format!("cannot set current directory to {:?}", cwd))?;
 
                 return Ok(());
             } else {
@@ -84,7 +82,7 @@ impl Project<Vec<PathBuf>> {
                 // `pop` returns false, we are at the root of the current FS, and
                 // there is no project file to find.
                 if !cwd.pop() {
-                    return Err(Error(String::from("could not find Book.toml")))
+                    return Err(Error::new("could not find Book.toml"))
                 }
             }
         }
@@ -94,10 +92,10 @@ impl Project<Vec<PathBuf>> {
     /// read it as a TOML file.
     pub fn find_project() -> Result<Self, Error> {
         let input = fs::read_to_string(PROJECT_FILE)
-            .map_err(|_| Error(String::from("found Book.toml, but cannot read it")))?;
+            .or_raise("found Book.toml, but cannot read it")?;
 
-        return toml::from_str(input.as_str())
-            .map_err(|e| Error(String::from(format!("toml error: {:?}", e))));
+        toml::from_str(input.as_str())
+            .or_raise(&format!("could not parse Book.toml"))
     }
 
     pub fn load_and_render<'input, T> (
@@ -111,7 +109,7 @@ impl Project<Vec<PathBuf>> {
         let title = self.title;
         let cover = self.cover
             .map(|x| fs::canonicalize(&x)
-                 .map_err(|_| Error(String::from("cannot compute a canonical path for the cover"))))
+                 .or_raise("cannot compute a canonical path for the cover"))
             // from Option<Result<_, E>> to Result<Option<_>, E>
             .map_or(Ok(None), |r| r.map(Some))?;
 

@@ -8,27 +8,28 @@ extern crate tera;
 
 use clap::{App, SubCommand};
 
+pub mod error;
 pub mod render;
 pub mod project;
 pub mod epub;
 
-use project::{Project, Error};
+use std::env::{current_dir, set_current_dir};
+use std::fs::{create_dir, remove_dir_all};
+use std::path::PathBuf;
+
 use ogmarkup::typography::FRENCH;
 
-use std::path::PathBuf;
-use std::fs::{create_dir, remove_dir_all};
+use error::{Raise, Error};
+use project::Project;
 
 const BUILD_DIR : &'static str = "_build";
 
 fn cd_clean_build_dir() -> Result<(), Error> {
-    remove_dir_all(BUILD_DIR)
-        .map_err(|_| Error(String::from("cannot clean up _build/")))?;
+    remove_dir_all(BUILD_DIR).or_raise("cannot clean up _build/")?;
 
-    create_dir(BUILD_DIR)
-        .map_err(|_| Error(String::from("cannot create _build/")))?;
+    create_dir(BUILD_DIR).or_raise("cannot create _build/")?;
 
-    std::env::set_current_dir(BUILD_DIR)
-        .map_err(|_| Error(String::from("cannot set current directory to _build")))?;
+    set_current_dir(BUILD_DIR).or_raise("cannot set current directory to _build/")?;
 
     Ok(())
 }
@@ -60,8 +61,7 @@ fn main() -> Result<(), Error> {
     let (subcommand, _args) = matches.subcommand();
 
     // TODO: in release mode, look for /usr/share/celtchar/assets
-    let assets: PathBuf = std::env::current_dir()
-        .map_err(|_| Error(String::from("cannot get current directory")))?;
+    let assets: PathBuf = current_dir().or_raise("cannot get current directory")?;
 
     match subcommand {
         "build"  => build(&assets)?,
