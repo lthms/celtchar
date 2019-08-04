@@ -2,6 +2,8 @@ extern crate clap;
 extern crate ogmarkup;
 extern crate serde_derive;
 extern crate toml;
+#[macro_use]
+extern crate tera;
 
 use clap::{App, SubCommand};
 

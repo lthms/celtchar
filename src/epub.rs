@@ -1,14 +1,26 @@
 use crate::project::{Error, Project, Chapter};
-use std::fs::{create_dir, create_dir_all};
-use std::path::PathBuf;
+use std::fs::{create_dir_all};
+use std::path::{Path, PathBuf};
+use tera::{Tera, Context};
 
 const EPUB_MIMETYPE: &'static str = "application/epub+zip";
-const CONTAINER_XML: &'static str = r#"<?xml version="1.0"?>
-<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>"#;
+
+fn write_template_to(tera : &Tera, template : &str, ctx : &Context, path : &PathBuf) -> Result<(), Error> {
+    let directory : &Path = path.parent().ok_or(Error(String::from("is not a file")))?;
+
+    if !directory.exists() {
+        create_dir_all(directory)
+            .map_err(|_| Error(format!("cannot create directory {:?}", directory)))?;
+    }
+
+    let content = tera.render(template, ctx)
+        .map_err(|e| Error(format!("cannot render {}: {}", template, e)))?;
+
+    std::fs::write(path, content)
+        .map_err(|_| Error(format!("cannot create {:?}", path)))?;
+
+    Ok(())
+}
 
 fn create_mimetype() -> Result<(), Error> {
     std::fs::write("mimetype", EPUB_MIMETYPE)
@@ -17,29 +29,33 @@ fn create_mimetype() -> Result<(), Error> {
     Ok(())
 }
 
-fn create_container() -> Result<(), Error> {
-    create_dir("META-INF")
-        .map_err(|_| Error(String::from("cannot create META-INF")))?;
+fn create_container(tera : &Tera) -> Result<(), Error> {
+    write_template_to(
+        tera,
+        "container.xml",
+        &Context::default(),
+        &PathBuf::from("META-INF/container.xml")
+    )?;
 
-    std::fs::write("META-INF/container.xml", CONTAINER_XML)
-        .map_err(|_| Error(String::from("cannot create container.xml")))?;
 
     Ok(())
 }
 
-fn create_chapters(chapters : &Vec<Chapter<String>>) -> Result<Vec<String>, Error> {
+fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec<String>, Error> {
 
     chapters.iter().enumerate()
         .map(|(idx, c)| {
+            let mut ctx = Context::new();
+            ctx.insert("content", &c.content);
+
             let path : String = format!("{}.xhtml", idx);
-            std::fs::write(
-                PathBuf::from(format!("OEBPS/Text/{}", path)).as_path(),
-                format!(
-                    "<html><head></head><body>{}</body></html>",
-                    c.content.as_str()
-                )
-            )
-                .map_err(|_| Error(format!("cannot create {:?}", path)))?;
+
+            write_template_to(
+                tera,
+                "chapter.xhtml",
+                &ctx,
+                &PathBuf::from(format!("OEBPS/Text/{}", path))
+            )?;
 
             Ok(path)
         })
@@ -47,62 +63,25 @@ fn create_chapters(chapters : &Vec<Chapter<String>>) -> Result<Vec<String>, Erro
 }
 
 pub fn generate(project : &Project<String>) -> Result<(), Error> {
+
+    let tera = compile_templates!("../templates/**/*");
+
     create_mimetype()?;
-    create_container()?;
+    create_container(&tera)?;
 
-    create_dir_all("OEBPS/Text")
-        .map_err(|_| Error(String::from("cannot create OEBPS")))?;
+    let files = create_chapters(&tera, &project.chapters)?;
 
-    let files = create_chapters(&project.chapters)?;
+    let mut ctx = Context::new();
+    ctx.insert("title", &project.title);
+    ctx.insert("author", &project.author);
+    ctx.insert("files", &files);
 
-    let mut filesxml = String::from("");
-    for f in files.iter() {
-        filesxml.push_str(
-            format!(
-                r#"<item href="Text/{}" id="{}" media-type="application/xhtml+xml" />"#,
-                f, f
-            ).as_str()
-        );
-    }
-
-    let mut spine = String::from("");
-    for f in files.iter() {
-        spine.push_str(
-            format!(
-                r#"<itemref idref="{}" />"#,
-                f
-            ).as_str()
-        );
-    }
-
-    std::fs::write(
-        "OEBPS/content.opf",
-        format!(
-            r#"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0" xmlns:opf="http://www.idpf.org/2007/opf">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:title>{}</dc:title>
-    <dc:language>fr</dc:language>
-    <dc:creator opf:role="aut">{}</dc:creator>
-    <dc:type>text</dc:type>
-    <dc:description>Ceci est une description</dc:description>
-  </metadata>
-  <manifest>
-    <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml" />
-    {}
-  </manifest>
-  <spine toc="ncxtoc">
-    {}
-  </spine>
-</package>
-"#,
-            project.title,
-            project.author,
-            filesxml,
-            spine
-        )
-    )
-        .map_err(|_| Error(String::from("cannot create content.opf")))?;
+    write_template_to(
+        &tera,
+        "content.opf",
+        &ctx,
+        &PathBuf::from("OEBPS/content.opf")
+    )?;
 
     Ok(())
 }
