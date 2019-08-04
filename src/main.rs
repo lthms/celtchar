@@ -1,6 +1,7 @@
 extern crate clap;
 extern crate ogmarkup;
 extern crate serde_derive;
+extern crate serde_json;
 extern crate toml;
 #[macro_use]
 extern crate tera;

@@ -2,6 +2,7 @@ use crate::project::{Error, Project, Chapter};
 use std::fs::{create_dir_all};
 use std::path::{Path, PathBuf};
 use tera::{Tera, Context};
+use serde_json::json;
 
 const EPUB_MIMETYPE: &'static str = "application/epub+zip";
 
@@ -46,6 +47,7 @@ fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec
     chapters.iter().enumerate()
         .map(|(idx, c)| {
             let mut ctx = Context::new();
+            ctx.insert("number", &(idx + 1));
             ctx.insert("chapter", &c);
 
             let path : String = format!("{}.xhtml", idx);
@@ -132,6 +134,22 @@ pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Err
         "content.opf",
         &ctx,
         &PathBuf::from("OEBPS/content.opf")
+    )?;
+
+    let chaps: Vec<_> = project.chapters.iter().enumerate()
+        .map(|(idx, chapter)| json!({
+            "index": idx,
+            "title": chapter.title,
+        }))
+        .collect();
+
+    let mut ctx = Context::new();
+    ctx.insert("chapters", &chaps);
+    write_template_to(
+        &tera,
+        "toc.ncx",
+        &ctx,
+        &PathBuf::from("OEBPS/toc.ncx")
     )?;
 
     Ok(())

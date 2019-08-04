@@ -32,6 +32,10 @@ h1 {
     text-align: center;
 }
 
+h1 .title {
+    font-size: 120%;
+}
+
 p {
     text-indent: .9rem;
     padding: 0;

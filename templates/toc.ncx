@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ncx version="2005-1" xmlns="http://www.daisy.org/z3986/2005/ncx/">
+  <head>
+    <meta name="dtb:depth" content="1" />
+    <meta name="dtb:totalPageCount" content="0" />
+    <meta name="dtb:maxPageNumber" content="0" />
+  </head>
+  <docTitle>
+    <text>Table des matières</text>
+  </docTitle>
+  <navMap>
+  {% for info in chapters %}
+      <navPoint class="h1" id="ch1">
+          <navLabel>
+              <text>{{ info.index + 1 }}. {{ info.title }}</text>
+          </navLabel>
+          <content src="Text/{{ info.index }}.xhtml" />
+      </navPoint>
+  {% endfor %}
+  </navMap>
+</ncx>
