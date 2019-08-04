@@ -8,8 +8,11 @@
     <dc:description>Ceci est une description</dc:description>
   </metadata>
   <manifest>
-    <item href="Style/main.css" id="main.css" media-type="text/css" />
     <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml" />
+    <item href="Style/main.css" id="main.css" media-type="text/css" />
+    {% for f in fonts %}
+    <item href="Fonts/{{ f }}" id="{{ f }}" media-type="application/x-font-ttf" />
+    {% endfor %}
     {% for f in files %}
     <item href="Text/{{ f }}" id="{{ f }}" media-type="application/xhtml+xml" />
     {% endfor %}

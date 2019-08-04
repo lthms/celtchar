@@ -62,32 +62,76 @@ fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec
         .collect::<Result<Vec<String>, Error>>()
 }
 
-pub fn generate(project : &Project<String>) -> Result<(), Error> {
+fn template_dir(assets : &PathBuf) -> Result<String, Error> {
+    let mut res = assets.clone();
 
-    let tera = compile_templates!("../templates/**/*");
+    res.push("templates");
+    res.push("**");
+    res.push("*");
+
+    res.to_str().map(String::from).ok_or(Error(format!("Compute template dir")))
+}
+
+fn fonts_dir(assets : &PathBuf) -> Result<PathBuf, Error> {
+    let mut res = assets.clone();
+
+    res.push("fonts");
+
+    Ok(res)
+}
+
+fn install_fonts(assets : &PathBuf, fonts : &Vec<&str>) -> Result<(), Error> {
+    create_dir_all("OEBPS/Fonts/")
+        .map_err(|_| Error(String::from("cannot create directory OEBPS/Fonts/")))?;
+
+    for f in fonts {
+        let mut src = fonts_dir(assets)?;
+        src.push(f);
+        let mut dst = PathBuf::from("OEBPS/Fonts");
+        dst.push(f);
+
+        std::fs::copy(src, dst)
+            .map_err(|_| Error(format!("cannot copy {}", f)))?;
+
+    }
+
+    Ok(())
+}
+
+pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Error> {
+
+    let tera = compile_templates!(template_dir(assets)?.as_str());
 
     create_mimetype()?;
     create_container(&tera)?;
 
     let files = create_chapters(&tera, &project.chapters)?;
 
-    let mut ctx = Context::new();
-    ctx.insert("title", &project.title);
-    ctx.insert("author", &project.author);
-    ctx.insert("files", &files);
-
-    write_template_to(
-        &tera,
-        "content.opf",
-        &ctx,
-        &PathBuf::from("OEBPS/content.opf")
-    )?;
-
     write_template_to(
         &tera,
         "main.css",
         &Context::new(),
         &PathBuf::from("OEBPS/Style/main.css")
+    )?;
+
+    let fonts = vec![
+        "et-book-roman-line-figures.ttf",
+        "et-book-bold-line-figures.ttf",
+        "et-book-display-italic-old-style-figures.ttf",
+    ];
+
+    install_fonts(assets, &fonts)?;
+
+    let mut ctx = Context::new();
+    ctx.insert("title", &project.title);
+    ctx.insert("author", &project.author);
+    ctx.insert("files", &files);
+    ctx.insert("fonts", &fonts);
+    write_template_to(
+        &tera,
+        "content.opf",
+        &ctx,
+        &PathBuf::from("OEBPS/content.opf")
     )?;
 
     Ok(())

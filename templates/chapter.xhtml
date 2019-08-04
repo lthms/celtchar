@@ -4,9 +4,7 @@
   </head>
   <body>
     {% if chapter.title %}
-    <h1>
-      {{ chapter.title }}
-    </h1>
+    <h1>{% filter upper %}{{ chapter.title }}{% endfilter %}</h1>
     {% endif %}
     <div class="ogmarkup">
       {{ chapter.content }}

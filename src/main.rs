@@ -14,6 +14,7 @@ pub mod epub;
 use project::{Project, Error};
 use ogmarkup::typography::FRENCH;
 
+use std::path::PathBuf;
 use std::fs::{create_dir, remove_dir_all};
 
 const BUILD_DIR : &'static str = "_build";
@@ -31,7 +32,7 @@ fn cd_clean_build_dir() -> Result<(), Error> {
     Ok(())
 }
 
-pub fn build() -> Result<(), Error> {
+pub fn build(assets : &PathBuf) -> Result<(), Error> {
     Project::cd_root()?;
 
     let project = Project::find_project()?
@@ -39,7 +40,7 @@ pub fn build() -> Result<(), Error> {
 
     cd_clean_build_dir()?;
 
-    epub::generate(&project)?;
+    epub::generate(&project, assets)?;
 
     Ok(())
 }
@@ -57,8 +58,12 @@ fn main() -> Result<(), Error> {
 
     let (subcommand, _args) = matches.subcommand();
 
+    // TODO: in release mode, look for /usr/share/celtchar/assets
+    let assets: PathBuf = std::env::current_dir()
+        .map_err(|_| Error(String::from("cannot get current directory")))?;
+
     match subcommand {
-        "build"  => build()?,
+        "build"  => build(&assets)?,
         _        => unimplemented!(),
     }
 

@@ -1,6 +1,27 @@
+@font-face {
+    font-family: "et-book";
+    font-weight: normal;
+    font-style: normal;
+    src: url(../Fonts/et-book-roman-line-figures.ttf);
+}
+
+@font-face {
+    font-family: "et-book";
+    font-weight: bold;
+    font-style: normal;
+    src: url(../Fonts/et-book-bold-line-figures.ttf);
+}
+
+@font-face {
+    font-family: "et-book";
+    font-weight: normal;
+    font-style: italic;
+    src: url(../Fonts/et-book-display-italic-old-style-figures.ttf);
+}
+
 html, body {
     font-size: 100%;
-    font-family: serif;
+    font-family: 'et-book', serif;
     color: #222;
     hyphens: auto;
 }
@@ -12,7 +33,7 @@ h1 {
 }
 
 p {
-    text-indent: 1rem;
+    text-indent: .9rem;
     padding: 0;
     margin: 0;
     line-height: 1.5em;
