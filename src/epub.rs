@@ -42,7 +42,7 @@ fn create_container(tera : &Tera) -> Result<(), Error> {
     Ok(())
 }
 
-fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec<String>, Error> {
+fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<(), Error> {
 
     chapters.iter().enumerate()
         .map(|(idx, c)| {
@@ -61,7 +61,9 @@ fn create_chapters(tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<Vec
 
             Ok(path)
         })
-        .collect::<Result<Vec<String>, Error>>()
+        .collect::<Result<Vec<String>, Error>>()?;
+
+    Ok(())
 }
 
 fn template_dir(assets : &PathBuf) -> Result<String, Error> {
@@ -122,7 +124,7 @@ pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Err
     create_mimetype()?;
     create_container(&tera)?;
 
-    let files = create_chapters(&tera, &project.chapters)?;
+    create_chapters(&tera, &project.chapters)?;
 
     write_template_to(
         &tera,
@@ -142,6 +144,10 @@ pub fn generate(project : &Project<String>, assets : &PathBuf) -> Result<(), Err
     ];
 
     install_fonts(assets, &fonts)?;
+
+    let files = project.chapters.iter().enumerate()
+        .map(|(idx, _)| idx)
+        .collect::<Vec<usize>>();
 
     let mut ctx = Context::new();
     ctx.insert("title", &project.title);

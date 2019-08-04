@@ -10,7 +10,7 @@
   </docTitle>
   <navMap>
   {% for info in chapters %}
-      <navPoint class="h1" id="ch1">
+      <navPoint class="h1" id="ch{{ info.index + 1 }}">
           <navLabel>
               <text>{{ info.index + 1 }}. {{ info.title }}</text>
           </navLabel>

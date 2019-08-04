@@ -1,14 +1,19 @@
-<html lang="fr">
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="fr" xml:lang="fr">
   <head>
     <link rel="stylesheet" type="text/css" href="../Style/main.css" />
+    <title>
+      {{ number }} – {{ chapter.title }}
+    </title>
   </head>
   <body>
     {% if chapter.title %}
     <h1>
       – {{ number }} –
-      <div class="title">
+      <span class="title">
         {% filter upper %}{{ chapter.title }}{% endfilter %}
-      </div>
+      </span>
     </h1>
     {% endif %}
     <div class="ogmarkup">

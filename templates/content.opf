@@ -17,15 +17,15 @@
     <item href="Fonts/{{ f }}" id="{{ f }}" media-type="application/x-font-ttf" />
     {% endfor %}
     {% for f in files %}
-    <item href="Text/{{ f }}" id="{{ f }}" media-type="application/xhtml+xml" />
+    <item href="Text/{{ f }}.xhtml" id="ch{{ f }}" media-type="application/xhtml+xml" />
     {% endfor %}
     {% if cover_extension %}
-    <item href="cover.{{ cover_extension }}" id="coverimage" media-type="image/jpeg" properties="cover-image" />
+    <item href="cover.{{ cover_extension }}" id="coverimage" media-type="image/jpeg" />
     {% endif %}
   </manifest>
   <spine toc="ncx">
     {% for f in files %}
-    <itemref idref="{{ f }}" />
+    <itemref idref="ch{{ f }}" />
     {% endfor %}
   </spine>
 </package>
