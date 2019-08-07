@@ -47,6 +47,16 @@ pub fn build(assets : &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(debug_assertions)]
+fn get_assets() -> Result<PathBuf, Error> {
+    current_dir().or_raise("cannot get current directory")
+}
+
+#[cfg(not(debug_assertions))]
+fn get_assets() -> Result<PathBuf, Error> {
+    Ok(PathBuf::from("/usr/local/share/celtchar"))
+}
+
 fn main() -> Result<(), Error> {
     let matches = App::new("celtchar")
         .version("0.1")
@@ -60,8 +70,7 @@ fn main() -> Result<(), Error> {
 
     let (subcommand, _args) = matches.subcommand();
 
-    // TODO: in release mode, look for /usr/share/celtchar/assets
-    let assets: PathBuf = current_dir().or_raise("cannot get current directory")?;
+    let assets: PathBuf = get_assets()?;
 
     match subcommand {
         "build"  => build(&assets)?,
