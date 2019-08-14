@@ -13,26 +13,20 @@ pub mod render;
 pub mod project;
 pub mod epub;
 
-use std::env::{current_dir, set_current_dir};
-use std::fs::{create_dir, remove_dir_all};
 use std::path::PathBuf;
+
+#[cfg(debug_assertions)]
+use std::env::current_dir;
+#[cfg(debug_assertions)]
+use error::Raise;
 
 use ogmarkup::typography::FRENCH;
 
-use error::{Raise, Error};
+use error::Error;
 use project::Project;
+use epub::Fs;
 
-const BUILD_DIR : &'static str = "_build";
-
-fn cd_clean_build_dir() -> Result<(), Error> {
-    remove_dir_all(BUILD_DIR).or_raise("cannot clean up _build/")?;
-
-    create_dir(BUILD_DIR).or_raise("cannot create _build/")?;
-
-    set_current_dir(BUILD_DIR).or_raise("cannot set current directory to _build/")?;
-
-    Ok(())
-}
+use epub::EpubWriter;
 
 pub fn build(assets : &PathBuf) -> Result<(), Error> {
     Project::cd_root()?;
@@ -40,9 +34,8 @@ pub fn build(assets : &PathBuf) -> Result<(), Error> {
     let project = Project::find_project()?
         .load_and_render(&FRENCH)?;
 
-    cd_clean_build_dir()?;
-
-    epub::generate(&project, assets)?;
+    let mut fs_writer = Fs::init()?;
+    EpubWriter::generate(&mut fs_writer, &project, assets)?;
 
     Ok(())
 }
