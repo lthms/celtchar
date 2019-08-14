@@ -1,13 +1,20 @@
-use std::fs;
-use std::fs::{create_dir, remove_dir_all, create_dir_all};
-use std::path::{Path, PathBuf};
 use std::env::set_current_dir;
+use std::fs::{create_dir, remove_dir_all, create_dir_all};
+use std::fs;
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+
+use serde_json::json;
 
 use tera::{Tera, Context};
-use serde_json::json;
 
 use crate::error::{Raise, Error};
 use crate::project::{Project, Chapter};
+
+use zip::write::FileOptions;
+use zip::ZipWriter;
+use std::fs::File;
+use std::collections::HashSet;
 
 const EPUB_MIMETYPE: &'static str = "application/epub+zip";
 
@@ -31,9 +38,7 @@ pub trait EpubWriter {
         dst : &PathBuf,
         input : &str
     ) -> Result<(), Error> ;
-}
 
-impl EpubWriter {
     fn create_mimetype(&mut self) -> Result<(), Error> {
         self.write_str(&PathBuf::from("mimetype"), EPUB_MIMETYPE)
     }
@@ -94,7 +99,7 @@ impl EpubWriter {
         Ok(extension.into())
     }
 
-    pub fn generate(&mut self, project : &Project<String>, assets : &PathBuf) -> Result<(), Error> {
+    fn generate(&mut self, project : &Project<String>, assets : &PathBuf) -> Result<(), Error> {
 
         let tera = compile_templates!(template_dir(assets)?.as_str());
 
@@ -239,6 +244,93 @@ impl EpubWriter for Fs {
         self.create_parent(dst)?;
 
         fs::copy(src, dst).or_raise(&format!("cannot copy {:?} to {:?}", src, dst))?;
+
+        Ok(())
+    }
+}
+
+pub struct Zip {
+    output : ZipWriter<File>,
+    dirs : HashSet<PathBuf>,
+}
+
+impl Zip {
+    pub fn init() -> Result<Zip, Error> {
+        let file = File::create("Book.epub").or_raise("Could not create Book.epub")?;
+
+        Ok(Zip {
+            output : ZipWriter::new(file),
+            dirs : HashSet::new(),
+        })
+    }
+
+    fn create_parent(&mut self, dst : &PathBuf) -> Result<(), Error> {
+        if let Some(dir) = dst.parent() {
+            if  self.dirs.contains(dir) {
+                self.output.add_directory_from_path(dir, FileOptions::default())
+                    .or_raise(&format!("Could not create directory {:?}", dir))?;
+                self.dirs.insert(dir.to_path_buf());
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl EpubWriter for Zip {
+    fn write_template(
+        &mut self,
+        dst : &PathBuf,
+        tera : & Tera,
+        template : &str,
+        ctx : &Context,
+    ) -> Result<(), Error> {
+        self.create_parent(dst)?;
+
+        let content = tera.render(template, ctx)
+            .or_raise(&format!("cannot render {}", template))?;
+
+        self.output.start_file_from_path(dst, FileOptions::default())
+            .or_raise(&format!("Could not add file {:?} to archive", dst))?;
+
+        self.output.write_all(content.as_bytes())
+            .or_raise(&format!("Could not write {:?} content", dst))?;
+
+        Ok(())
+    }
+
+    fn write_str(
+        &mut self,
+        dst : &PathBuf,
+        input : &str
+    ) -> Result<(), Error> {
+        self.create_parent(dst)?;
+
+        self.output.start_file_from_path(dst, FileOptions::default())
+            .or_raise(&format!("Could not add file {:?} to archive", dst))?;
+
+        self.output.write_all(input.as_bytes())
+            .or_raise(&format!("Could not write {:?} content", dst))?;
+
+        Ok(())
+    }
+
+    fn write_file(
+        &mut self,
+        dst : &PathBuf,
+        src : &PathBuf,
+    ) -> Result<(), Error> {
+        let mut buffer = Vec::new();
+        let mut f = File::open(src).or_raise(&format!("Could not open {:?}", src))?;
+        f.read_to_end(&mut buffer).or_raise(&format!("Could not read {:?} content", src))?;
+
+        self.create_parent(dst)?;
+
+        self.output.start_file_from_path(dst, FileOptions::default())
+            .or_raise(&format!("Could not add file {:?} to archive", dst))?;
+
+        self.output.write_all(buffer.as_ref())
+            .or_raise(&format!("Could not write {:?} content", dst))?;
 
         Ok(())
     }

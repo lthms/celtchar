@@ -5,6 +5,7 @@ extern crate serde_json;
 extern crate toml;
 #[macro_use]
 extern crate tera;
+extern crate zip;
 
 use clap::{App, SubCommand};
 
@@ -24,7 +25,7 @@ use ogmarkup::typography::FRENCH;
 
 use error::Error;
 use project::Project;
-use epub::Fs;
+use epub::{Zip, Fs};
 
 use epub::EpubWriter;
 
@@ -34,8 +35,11 @@ pub fn build(assets : &PathBuf) -> Result<(), Error> {
     let project = Project::find_project()?
         .load_and_render(&FRENCH)?;
 
+    let mut zip_writer = Zip::init()?;
+    zip_writer.generate(&project, assets)?;
+
     let mut fs_writer = Fs::init()?;
-    EpubWriter::generate(&mut fs_writer, &project, assets)?;
+    fs_writer.generate(&project, assets)?;
 
     Ok(())
 }
