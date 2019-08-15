@@ -6,7 +6,7 @@ use serde_json::json;
 use tera::{Tera, Context};
 
 use crate::error::{Raise, Error};
-use crate::project::{Project, Chapter, Cover};
+use crate::project::{Project, Chapter, Cover, Language};
 
 use zip::write::FileOptions;
 use zip::ZipWriter;
@@ -58,7 +58,8 @@ pub trait EpubWriter {
         &mut self,
         tera : &Tera,
         chapters : &Vec<Chapter<String>>,
-        numbering : bool
+        numbering : bool,
+        lang : &Language,
     ) -> Result<(), Error> {
         chapters.iter().enumerate()
             .map(|(idx, c)| {
@@ -66,6 +67,7 @@ pub trait EpubWriter {
                 ctx.insert("number", &(idx + 1));
                 ctx.insert("chapter", &c);
                 ctx.insert("numbering", &numbering);
+                ctx.insert("language", &lang);
 
                 let path : String = format!("{}.xhtml", idx);
 
@@ -106,7 +108,7 @@ pub trait EpubWriter {
         self.create_mimetype()?;
         self.create_container(&tera)?;
 
-        self.create_chapters(&tera, &project.chapters, project.numbering.unwrap_or(false))?;
+        self.create_chapters(&tera, &project.chapters, project.numbering.unwrap_or(false), &project.language)?;
 
         self.write_template(
             &PathBuf::from("OEBPS/Style/main.css"),
@@ -137,6 +139,7 @@ pub trait EpubWriter {
         ctx.insert("cover_extension", &project.cover.as_ref().map(|x| x.extension.clone()));
         ctx.insert("files", &files);
         ctx.insert("fonts", &fonts);
+        ctx.insert("language", &project.language);
 
         self.write_template(
             &PathBuf::from("OEBPS/content.opf"),

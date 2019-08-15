@@ -1,8 +1,23 @@
-use ogmarkup::typography::Typography;
+use ogmarkup::typography::{Typography, FRENCH, ENGLISH};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::render::Html;
 use crate::error::{Raise, Error};
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Language {
+    Fr,
+    En,
+}
+
+impl Language {
+    pub fn typography(&self) -> &dyn Typography {
+        match self {
+            Language::Fr => &FRENCH,
+            Language::En => &ENGLISH,
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Cover {
@@ -44,7 +59,7 @@ impl<I> Chapter<Vec<I>> {
         typo : &T,
     ) -> Result<Chapter<String>, Error>
     where
-        T : Typography,
+        T : Typography + ?Sized,
         L : Loader<DocId = I>
     {
         let title = &self.title;
@@ -74,20 +89,21 @@ pub struct Project<C, I> {
     pub chapters: Vec<Chapter<I>>,
     pub cover: Option<C>,
     pub numbering: Option<bool>,
+    pub language: Language,
 }
 
 impl Project<Cover, String> {
-    pub fn load_and_render<'input, T, L> (
+    pub fn load_and_render<'input, L> (
         id : &L::ProjId,
         loader : &L,
-        typo : &T,
     ) -> Result<Project<Cover, String>, Error>
     where
-        T : Typography,
         L : Loader,
     {
         let project = loader.load_project(id)?;
 
+        let lang = project.language;
+        let typo = lang.typography();
         let numbering = project.numbering;
         let author = project.author;
         let title = project.title;
@@ -104,6 +120,7 @@ impl Project<Cover, String> {
                 chapters: x,
                 cover: cover,
                 numbering: numbering,
+                language: lang,
             })
     }
 }

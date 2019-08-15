@@ -9,8 +9,6 @@ use std::path::PathBuf;
 
 use clap::{App, SubCommand};
 
-use ogmarkup::typography::FRENCH;
-
 use libceltchar::{Error, Zip, Project, EpubWriter};
 
 #[cfg(debug_assertions)]
@@ -25,7 +23,7 @@ fn build(assets : &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
     let loader = Fs;
 
-    let project = Project::load_and_render(&root, &loader, &FRENCH)?;
+    let project = Project::load_and_render(&root, &loader)?;
 
     let mut zip_writer = Zip::init()?;
     zip_writer.generate(&project, assets)?;

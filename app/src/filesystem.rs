@@ -57,7 +57,8 @@ fn canonicalize_project(
             .or_raise("…")?,
         numbering: project.numbering,
         chapters: project.chapters.iter().map(canonicalize_chapter)
-            .collect::<Result<_, Error>>()?
+            .collect::<Result<_, Error>>()?,
+        language: project.language,
     })
 }
 
