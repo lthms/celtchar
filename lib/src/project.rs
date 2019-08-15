@@ -76,24 +76,26 @@ pub struct Project<C, I> {
     pub numbering: Option<bool>,
 }
 
-impl<C, I> Project<C, Vec<I>> {
+impl Project<Cover, String> {
     pub fn load_and_render<'input, T, L> (
-        self,
+        id : &L::ProjId,
         loader : &L,
         typo : &T,
     ) -> Result<Project<Cover, String>, Error>
     where
         T : Typography,
-        L : Loader<CovId = C, DocId = I>,
+        L : Loader,
     {
-        let numbering = self.numbering;
-        let author = self.author;
-        let title = self.title;
-        let cover = self.cover
+        let project = loader.load_project(id)?;
+
+        let numbering = project.numbering;
+        let author = project.author;
+        let title = project.title;
+        let cover = project.cover
             .map(|x| loader.load_cover(&x).or_raise("cannot load the cover"))
             .map_or(Ok(None), |r| r.map(Some))?;
 
-        self.chapters.into_iter()
+        project.chapters.into_iter()
             .map(|chapter| chapter.load_and_render(loader, typo))
             .collect::<Result<Vec<Chapter<String>>, Error>>()
             .map(|x| Project {

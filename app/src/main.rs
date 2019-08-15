@@ -11,7 +11,7 @@ use clap::{App, SubCommand};
 
 use ogmarkup::typography::FRENCH;
 
-use libceltchar::{Error, Zip, EpubWriter, Loader};
+use libceltchar::{Error, Zip, Project, EpubWriter};
 
 #[cfg(debug_assertions)]
 use std::env::current_dir;
@@ -25,8 +25,7 @@ fn build(assets : &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
     let loader = Fs;
 
-    let project = loader.load_project(&root)?
-        .load_and_render(&loader, &FRENCH)?;
+    let project = Project::load_and_render(&root, &loader, &FRENCH)?;
 
     let mut zip_writer = Zip::init()?;
     zip_writer.generate(&project, assets)?;
