@@ -52,12 +52,18 @@ pub trait EpubWriter {
         )
     }
 
-    fn create_chapters(&mut self, tera : &Tera, chapters : &Vec<Chapter<String>>) -> Result<(), Error> {
+    fn create_chapters(
+        &mut self,
+        tera : &Tera,
+        chapters : &Vec<Chapter<String>>,
+        numbering : bool
+    ) -> Result<(), Error> {
         chapters.iter().enumerate()
             .map(|(idx, c)| {
                 let mut ctx = Context::new();
                 ctx.insert("number", &(idx + 1));
                 ctx.insert("chapter", &c);
+                ctx.insert("numbering", &numbering);
 
                 let path : String = format!("{}.xhtml", idx);
 
@@ -106,7 +112,7 @@ pub trait EpubWriter {
         self.create_mimetype()?;
         self.create_container(&tera)?;
 
-        self.create_chapters(&tera, &project.chapters)?;
+        self.create_chapters(&tera, &project.chapters, project.numbering.unwrap_or(false))?;
 
         self.write_template(
             &PathBuf::from("OEBPS/Style/main.css"),

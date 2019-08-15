@@ -10,10 +10,18 @@
   <body>
     {% if chapter.title %}
     <h1>
+      {% if numbering %}
       – {{ number }} –
       <span class="title">
         {% filter upper %}{{ chapter.title }}{% endfilter %}
       </span>
+      {% else %}
+      {% filter upper %}{{ chapter.title }}{% endfilter %}
+      {% endif %}
+    </h1>
+    {% elif numbering %}
+    <h1>
+      – {{ number }} –
     </h1>
     {% endif %}
     <div class="ogmarkup">

@@ -57,6 +57,7 @@ pub struct Project<A> {
     pub title: String,
     pub chapters: Vec<Chapter<A>>,
     pub cover: Option<PathBuf>,
+    pub numbering: Option<bool>,
 }
 
 impl Project<Vec<PathBuf>> {
@@ -105,6 +106,7 @@ impl Project<Vec<PathBuf>> {
     where
         T : Typography
     {
+        let numbering = self.numbering;
         let author = self.author;
         let title = self.title;
         let cover = self.cover
@@ -121,6 +123,7 @@ impl Project<Vec<PathBuf>> {
                 title: title,
                 chapters: x,
                 cover: cover,
+                numbering: numbering,
             })
     }
 }
