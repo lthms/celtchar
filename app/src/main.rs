@@ -1,45 +1,35 @@
 extern crate clap;
-extern crate ogmarkup;
-extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
-#[macro_use]
+extern crate libceltchar;
+extern crate ogmarkup;
 extern crate tera;
-extern crate zip;
+
+use std::path::PathBuf;
 
 use clap::{App, SubCommand};
 
-pub mod error;
-pub mod render;
-pub mod project;
-pub mod epub;
+use ogmarkup::typography::FRENCH;
 
-use std::path::PathBuf;
+use libceltchar::{Error, Zip, EpubWriter, Loader};
 
 #[cfg(debug_assertions)]
 use std::env::current_dir;
 #[cfg(debug_assertions)]
-use error::Raise;
+use libceltchar::Raise;
 
-use ogmarkup::typography::FRENCH;
+mod filesystem;
+use crate::filesystem::{find_root, Fs};
 
-use error::Error;
-use project::Project;
-use epub::{Zip, Fs};
+fn build(assets : &PathBuf) -> Result<(), Error> {
+    let root = find_root()?;
+    let loader = Fs;
 
-use epub::EpubWriter;
-
-pub fn build(assets : &PathBuf) -> Result<(), Error> {
-    Project::cd_root()?;
-
-    let project = Project::find_project()?
-        .load_and_render(&FRENCH)?;
+    let project = loader.load_project(&root)?
+        .load_and_render(&loader, &FRENCH)?;
 
     let mut zip_writer = Zip::init()?;
     zip_writer.generate(&project, assets)?;
-
-    let mut fs_writer = Fs::init()?;
-    fs_writer.generate(&project, assets)?;
 
     Ok(())
 }
