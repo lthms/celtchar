@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use clap::{App, SubCommand};
 
-use libceltchar::{Error, Zip, Project, EpubWriter};
+use libceltchar::{Loader, Error, Zip, Project, EpubWriter};
 
 #[cfg(debug_assertions)]
 use std::env::current_dir;
@@ -18,6 +18,24 @@ use libceltchar::Raise;
 
 mod filesystem;
 use crate::filesystem::{find_root, Fs};
+
+fn deps() -> Result<(), Error> {
+    let root = find_root()?;
+    let loader = Fs;
+    let project = loader.load_project(&root)?;
+
+    let mut files = vec![];
+
+    for mut chapter in project.chapters.into_iter() {
+        files.append(&mut chapter.content)
+    }
+
+    for file in files {
+        println!("{}", file.to_str().unwrap_or("<invalid utf8 filename>"));
+    }
+
+    Ok(())
+}
 
 fn build(assets : &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
@@ -50,6 +68,8 @@ fn main() -> Result<(), Error> {
                     .about("Create a new celtchar document"))
         .subcommand(SubCommand::with_name("build")
                     .about("Build a celtchar document"))
+        .subcommand(SubCommand::with_name("deps")
+                    .about("List dependencies of a celtchar document"))
         .get_matches();
 
     let (subcommand, _args) = matches.subcommand();
@@ -58,6 +78,7 @@ fn main() -> Result<(), Error> {
 
     match subcommand {
         "build"  => build(&assets)?,
+        "deps"   => deps()?,
         _        => unimplemented!(),
     }
 
