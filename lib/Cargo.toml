@@ -7,6 +7,6 @@ authors = ["Thomas Letan <contact@thomasletan.fr>"]
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-tera = "0.11"
+tera = "1.0"
 zip = "0.5"
 ogmarkup = { version = "0.1", git = "https://git.sr.ht/~lthms/ogmarkup" }

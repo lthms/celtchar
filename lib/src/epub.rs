@@ -3,44 +3,22 @@ use std::path::PathBuf;
 
 use serde_json::json;
 
-use tera::{Tera, Context};
+use tera::{Context, Tera};
 
-use crate::error::{Raise, Error};
-use crate::project::{Project, Chapter, Cover, Language};
+use crate::error::{Error, Raise};
+use crate::project::{Chapter, Cover, Language, Project};
 
+use std::collections::HashSet;
+use std::fs::File;
 use zip::write::FileOptions;
 use zip::ZipWriter;
-use std::fs::File;
-use std::collections::HashSet;
 
-const EPUB_MIMETYPE: &'static str = "application/epub+zip";
+use crate::assets::{fonts_dir, template_dir};
+use crate::writer::BookWriter;
 
-pub trait EpubWriter {
-    fn write_template(
-        &mut self,
-        dst : &PathBuf,
-        tera : & Tera,
-        template : &str,
-        ctx : &Context,
-    ) -> Result<(), Error> {
-        let content = tera.render(template, ctx)
-            .or_raise(&format!("cannot render {}", template))?;
+const EPUB_MIMETYPE : &'static str = "application/epub+zip";
 
-        self.write_bytes(dst, content.as_bytes())
-    }
-
-    fn write_file(
-        &mut self,
-        dst : &PathBuf,
-        src : &PathBuf,
-    ) -> Result<(), Error>;
-
-    fn write_bytes(
-        &mut self,
-        dst : &PathBuf,
-        input : &[u8]
-    ) -> Result<(), Error> ;
-
+pub trait EpubWriter: BookWriter {
     fn create_mimetype(&mut self) -> Result<(), Error> {
         self.write_bytes(&PathBuf::from("mimetype"), EPUB_MIMETYPE.as_bytes())
     }
@@ -49,7 +27,7 @@ pub trait EpubWriter {
         self.write_template(
             &PathBuf::from("META-INF/container.xml"),
             tera,
-            "container.xml",
+            "epub/container.xml",
             &Context::default(),
         )
     }
@@ -61,7 +39,9 @@ pub trait EpubWriter {
         numbering : bool,
         lang : &Language,
     ) -> Result<(), Error> {
-        chapters.iter().enumerate()
+        chapters
+            .iter()
+            .enumerate()
             .map(|(idx, c)| {
                 let mut ctx = Context::new();
                 ctx.insert("number", &(idx + 1));
@@ -74,7 +54,7 @@ pub trait EpubWriter {
                 self.write_template(
                     &PathBuf::from(format!("OEBPS/Text/{}", path)),
                     tera,
-                    "chapter.xhtml",
+                    "epub/chapter.xhtml",
                     &ctx,
                 )?;
 
@@ -101,19 +81,28 @@ pub trait EpubWriter {
         self.write_bytes(&dst, cover.content.as_slice())
     }
 
-    fn generate(&mut self, project : &Project<Cover, String>, assets : &PathBuf) -> Result<(), Error> {
-
-        let tera = compile_templates!(template_dir(assets)?.as_str());
+    fn generate_epub(
+        &mut self,
+        project : &Project<Cover, String>,
+        assets : &PathBuf,
+    ) -> Result<(), Error> {
+        let tera =
+            Tera::new(template_dir(assets)?.as_str()).or_raise("Could not build templates")?;
 
         self.create_mimetype()?;
         self.create_container(&tera)?;
 
-        self.create_chapters(&tera, &project.chapters, project.numbering.unwrap_or(false), &project.language)?;
+        self.create_chapters(
+            &tera,
+            &project.chapters,
+            project.numbering.unwrap_or(false),
+            &project.language,
+        )?;
 
         self.write_template(
             &PathBuf::from("OEBPS/Style/main.css"),
             &tera,
-            "main.css",
+            "epub/main.css",
             &Context::new(),
         )?;
 
@@ -129,14 +118,20 @@ pub trait EpubWriter {
 
         self.install_fonts(assets, &fonts)?;
 
-        let files = project.chapters.iter().enumerate()
+        let files = project
+            .chapters
+            .iter()
+            .enumerate()
             .map(|(idx, _)| idx)
             .collect::<Vec<usize>>();
 
         let mut ctx = Context::new();
         ctx.insert("title", &project.title);
         ctx.insert("author", &project.author);
-        ctx.insert("cover_extension", &project.cover.as_ref().map(|x| x.extension.clone()));
+        ctx.insert(
+            "cover_extension",
+            &project.cover.as_ref().map(|x| x.extension.clone()),
+        );
         ctx.insert("files", &files);
         ctx.insert("fonts", &fonts);
         ctx.insert("language", &project.language);
@@ -144,47 +139,31 @@ pub trait EpubWriter {
         self.write_template(
             &PathBuf::from("OEBPS/content.opf"),
             &tera,
-            "content.opf",
+            "epub/content.opf",
             &ctx,
         )?;
 
-        let chaps: Vec<_> = project.chapters.iter().enumerate()
-            .map(|(idx, chapter)| json!({
-                "index": idx,
-                "title": chapter.title,
-            }))
+        let chaps : Vec<_> = project
+            .chapters
+            .iter()
+            .enumerate()
+            .map(|(idx, chapter)| {
+                json!({
+                    "index": idx,
+                    "title": chapter.title,
+                })
+            })
             .collect();
 
         let mut ctx = Context::new();
         ctx.insert("chapters", &chaps);
-        self.write_template(
-            &PathBuf::from("OEBPS/toc.ncx"),
-            &tera,
-            "toc.ncx",
-            &ctx,
-        )?;
+        self.write_template(&PathBuf::from("OEBPS/toc.ncx"), &tera, "epub/toc.ncx", &ctx)?;
 
         Ok(())
     }
 }
 
-fn template_dir(assets : &PathBuf) -> Result<String, Error> {
-    let mut res = assets.clone();
-
-    res.push("templates");
-    res.push("**");
-    res.push("*");
-
-    res.to_str().map(String::from).ok_or(Error(format!("Compute template dir")))
-}
-
-fn fonts_dir(assets : &PathBuf) -> Result<PathBuf, Error> {
-    let mut res = assets.clone();
-
-    res.push("fonts");
-
-    Ok(res)
-}
+impl<W> EpubWriter for W where W : BookWriter {}
 
 pub struct Zip {
     output : ZipWriter<File>,
@@ -203,8 +182,9 @@ impl Zip {
 
     fn create_parent(&mut self, dst : &PathBuf) -> Result<(), Error> {
         if let Some(dir) = dst.parent() {
-            if  self.dirs.contains(dir) {
-                self.output.add_directory_from_path(dir, FileOptions::default())
+            if self.dirs.contains(dir) {
+                self.output
+                    .add_directory_from_path(dir, FileOptions::default())
                     .or_raise(&format!("Could not create directory {:?}", dir))?;
                 self.dirs.insert(dir.to_path_buf());
             }
@@ -214,38 +194,35 @@ impl Zip {
     }
 }
 
-impl EpubWriter for Zip {
-    fn write_bytes(
-        &mut self,
-        dst : &PathBuf,
-        input : &[u8]
-    ) -> Result<(), Error> {
+impl BookWriter for Zip {
+    fn write_bytes(&mut self, dst : &PathBuf, input : &[u8]) -> Result<(), Error> {
         self.create_parent(dst)?;
 
-        self.output.start_file_from_path(dst, FileOptions::default())
+        self.output
+            .start_file_from_path(dst, FileOptions::default())
             .or_raise(&format!("Could not add file {:?} to archive", dst))?;
 
-        self.output.write_all(input)
+        self.output
+            .write_all(input)
             .or_raise(&format!("Could not write {:?} content", dst))?;
 
         Ok(())
     }
 
-    fn write_file(
-        &mut self,
-        dst : &PathBuf,
-        src : &PathBuf,
-    ) -> Result<(), Error> {
+    fn write_file(&mut self, dst : &PathBuf, src : &PathBuf) -> Result<(), Error> {
         let mut buffer = Vec::new();
         let mut f = File::open(src).or_raise(&format!("Could not open {:?}", src))?;
-        f.read_to_end(&mut buffer).or_raise(&format!("Could not read {:?} content", src))?;
+        f.read_to_end(&mut buffer)
+            .or_raise(&format!("Could not read {:?} content", src))?;
 
         self.create_parent(dst)?;
 
-        self.output.start_file_from_path(dst, FileOptions::default())
+        self.output
+            .start_file_from_path(dst, FileOptions::default())
             .or_raise(&format!("Could not add file {:?} to archive", dst))?;
 
-        self.output.write_all(buffer.as_ref())
+        self.output
+            .write_all(buffer.as_ref())
             .or_raise(&format!("Could not write {:?} content", dst))?;
 
         Ok(())
