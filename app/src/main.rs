@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use clap::{App, SubCommand};
 
-use libceltchar::{EpubWriter, Error, Loader, Project, Zip};
+use libceltchar::{EpubWriter, Error, Loader, Project, Zip, Static};
 
 #[cfg(debug_assertions)]
 use libceltchar::Raise;
@@ -49,6 +49,18 @@ fn build_epub(assets : &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
+fn build_static(assets : &PathBuf) -> Result<(), Error> {
+    let root = find_root()?;
+    let loader = Fs;
+
+    let project = Project::load_and_render(&root, &loader)?;
+
+    let mut static_website = Static::init(&PathBuf::from("out"))?;
+    static_website.generate_static_website(&project, assets)?;
+
+    Ok(())
+}
+
 #[cfg(debug_assertions)]
 fn get_assets() -> Result<PathBuf, Error> {
     current_dir().or_raise("cannot get current directory")
@@ -65,6 +77,8 @@ fn main() -> Result<(), Error> {
         .author("Thomas Letan")
         .about("A tool to generate novels")
         .subcommand(SubCommand::with_name("new").about("Create a new celtchar document"))
+        .subcommand(SubCommand::with_name("epub").about("Build a epub"))
+        .subcommand(SubCommand::with_name("static").about("Build a static website"))
         .subcommand(SubCommand::with_name("build").about("Build a celtchar document"))
         .subcommand(SubCommand::with_name("deps").about("List dependencies of a celtchar document"))
         .get_matches();
@@ -74,7 +88,8 @@ fn main() -> Result<(), Error> {
     let assets : PathBuf = get_assets()?;
 
     match subcommand {
-        "build" => build_epub(&assets)?,
+        "epub" => build_epub(&assets)?,
+        "static" => build_static(&assets)?,
         "deps" => deps()?,
         _ => unimplemented!(),
     }

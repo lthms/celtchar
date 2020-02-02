@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="{{ language | lower }}">
+  <head>
+    <title>{{ chapter.title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.1.7/css/fork-awesome.min.css" integrity="sha256-gsmEoJAws/Kd3CjuOQzLie5Q3yshhvmo7YNtBG7aaEY=" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav>
+    {% if 1 < number %}
+      <a href="{{ number - 2 }}.html" class="nav_item">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+      </a>
+    {% else %}
+      <div class="nav_item"></div>
+    {% endif %}
+      <a href="index.html" class="nav_item">
+        <i class="fa fa-home" aria-hidden="true"></i>
+      </a>
+    {% if number < chapters_number %}
+      <a href="{{ number }}.html" class="nav_item">
+        <i class="fa fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    {% else %}
+      <div class="nav_item"></div>
+    {% endif %}
+    </nav>
+
+    <h1>
+      {% if numbering %}
+      – {{ number }} –
+      <span class="title">
+        {{ chapter.title | upper }}
+      </span>
+      {% else %}
+      {{ chapter.title | upper }}
+      {% endif %}
+    </h1>
+
+    <article class="ogmarkup">
+      {{ chapter.content | safe }}
+    </article>
+
+    <nav>
+    {% if 1 < number %}
+      <a href="{{ number - 2 }}.html" class="nav_item">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+      </a>
+    {% else %}
+      <div class="nav_item"></div>
+    {% endif %}
+      <a href="index.html" class="nav_item">
+        <i class="fa fa-home" aria-hidden="true"></i>
+      </a>
+    {% if number < chapters_number %}
+      <a href="{{ number }}.html" class="nav_item">
+        <i class="fa fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    {% else %}
+      <div class="nav_item"></div>
+    {% endif %}
+    </nav>
+  </body>
+</html>

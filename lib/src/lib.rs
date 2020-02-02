@@ -10,7 +10,10 @@ mod error;
 mod project;
 mod render;
 mod writer;
+mod wstatic;
 
+pub use writer::BookWriter;
 pub use epub::{EpubWriter, Zip};
 pub use error::{Error, Raise};
 pub use project::{Chapter, Cover, Loader, Project};
+pub use wstatic::Static;
