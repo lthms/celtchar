@@ -1,3 +1,4 @@
+{% if not body_only %}
 <!DOCTYPE html>
 <html lang="{{ language | lower }}">
   <head>
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
+{% endif %}
     <nav>
     {% if 1 < number %}
       <a href="{{ number - 2 }}.html" class="nav_item">
@@ -62,5 +64,7 @@
       <div class="nav_item"></div>
     {% endif %}
     </nav>
+{% if not body_only %}
   </body>
 </html>
+{% endif %}

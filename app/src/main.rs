@@ -7,9 +7,9 @@ extern crate toml;
 
 use std::path::PathBuf;
 
-use clap::{App, SubCommand};
+use clap::{App, Arg, SubCommand};
 
-use libceltchar::{EpubWriter, Error, Loader, Project, Zip, Static};
+use libceltchar::{EpubWriter, Error, Loader, Project, Static, Zip};
 
 #[cfg(debug_assertions)]
 use libceltchar::Raise;
@@ -49,13 +49,13 @@ fn build_epub(assets : &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-fn build_static(assets : &PathBuf) -> Result<(), Error> {
+fn build_static(assets : &PathBuf, body_only : bool, out : &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
     let loader = Fs;
 
     let project = Project::load_and_render(&root, &loader)?;
 
-    let mut static_website = Static::init(&PathBuf::from("out"))?;
+    let mut static_website = Static::init(out, body_only)?;
     static_website.generate_static_website(&project, assets)?;
 
     Ok(())
@@ -78,19 +78,41 @@ fn main() -> Result<(), Error> {
         .about("A tool to generate novels")
         .subcommand(SubCommand::with_name("new").about("Create a new celtchar document"))
         .subcommand(SubCommand::with_name("epub").about("Build a epub"))
-        .subcommand(SubCommand::with_name("static").about("Build a static website"))
+        .subcommand(
+            SubCommand::with_name("static")
+                .about("Build a static website")
+                .arg(
+                    Arg::with_name("body-only")
+                        .help("Only output the bodies of the documents.")
+                        .takes_value(false)
+                        .short("b")
+                        .long("body-only"),
+                )
+                .arg(
+                    Arg::with_name("output")
+                        .value_name("DIRECTORY")
+                        .help("Output directory where the generated documents are saved")
+                        .takes_value(true)
+                        .short("o")
+                        .long("output"),
+                ),
+        )
         .subcommand(SubCommand::with_name("build").about("Build a celtchar document"))
         .subcommand(SubCommand::with_name("deps").about("List dependencies of a celtchar document"))
         .get_matches();
 
-    let (subcommand, _args) = matches.subcommand();
-
     let assets : PathBuf = get_assets()?;
 
-    match subcommand {
-        "epub" => build_epub(&assets)?,
-        "static" => build_static(&assets)?,
-        "deps" => deps()?,
+    match matches.subcommand() {
+        ("epub", _) => build_epub(&assets)?,
+        ("static",Some(args)) => {
+            let body_only = args.is_present("body-only");
+            let output_dir = PathBuf::from(
+                args.value_of("output").unwrap_or("out")
+            );
+            build_static(&assets, body_only, &output_dir)?
+        },
+        ("deps", _) => deps()?,
         _ => unimplemented!(),
     }
 

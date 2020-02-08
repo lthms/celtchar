@@ -1,3 +1,4 @@
+{% if not body_only %}
 <!DOCTYPE html>
 <html lang="{{ language | lower }}">
   <head>
@@ -7,11 +8,14 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
+{% endif %}
     <h1>{{ title | upper }}</h1>
     <ul>
     {% for info in chapters %}
     <li><a href="{{info.index}}.html">{{ info.index + 1 }}. {{ info.title }}</a></li>
     {% endfor %}
     </ul>
+{% if not body_only %}
   </body>
 </html>
+{% endif %}

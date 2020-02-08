@@ -10,6 +10,7 @@ use crate::assets::template_dir;
 
 pub struct Static {
     base : PathBuf,
+    body_only : bool,
 }
 
 impl BookWriter for Static {
@@ -32,7 +33,7 @@ impl BookWriter for Static {
 }
 
 impl Static {
-    pub fn init(base : &PathBuf) -> Result<Static, Error> {
+    pub fn init(base : &PathBuf, body_only : bool) -> Result<Static, Error> {
         if !base.exists() {
             create_dir(base).or_raise("Could not create output directory.")?;
         }
@@ -40,6 +41,8 @@ impl Static {
         if base.is_dir() {
             Ok(Static {
                 base : base.to_owned()
+                base : base.to_owned(),
+                body_only : body_only,
             })
         } else {
             Err(Error::new(&format!("{:?} already exists and is not a directory", base)))
@@ -67,6 +70,7 @@ impl Static {
         ctx.insert("chapters", &chaps);
         ctx.insert("language", &project.language);
         ctx.insert("title", &project.title);
+        ctx.insert("body_only", &self.body_only);
 
         self.write_template(
             &PathBuf::from("index.html"),
@@ -96,6 +100,7 @@ impl Static {
                 ctx.insert("chapter", &c);
                 ctx.insert("numbering", &numbering);
                 ctx.insert("language", &lang);
+                ctx.insert("body_only", &self.body_only);
                 ctx.insert("chapters_number", &max);
 
                 let path : PathBuf = PathBuf::from(format!("{}.html", idx));
@@ -132,10 +137,12 @@ impl Static {
             &project.language,
         )?;
 
-        self.write_file(
-            &PathBuf::from("style.css"),
-            &assets.join(PathBuf::from("templates/static/style.css")),
-        )?;
+        if !self.body_only {
+            self.write_file(
+                &PathBuf::from("style.css"),
+                &assets.join(PathBuf::from("templates/static/style.css")),
+            )?;
+        }
 
         Ok(())
     }
