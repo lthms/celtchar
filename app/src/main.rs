@@ -71,7 +71,7 @@ fn get_assets() -> Result<PathBuf, Error> {
     Ok(PathBuf::from("/usr/local/share/celtchar"))
 }
 
-fn main() -> Result<(), Error> {
+fn main_with_error() -> Result<(), Error> {
     let matches = App::new("celtchar")
         .version("0.1")
         .author("Thomas Letan")
@@ -115,4 +115,11 @@ fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn main() -> () {
+    match main_with_error() {
+        Err(Error(msg)) => eprintln!("error: {}", msg),
+        Ok(x) => x,
+    }
 }
