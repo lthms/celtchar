@@ -34,10 +34,10 @@
       {% if numbering %}
       – {{ number }} –
       <span class="title">
-        {{ chapter.title | upper }}
+        {% filter upper %}{{ chapter.title }}{% endfilter %}
       </span>
       {% else %}
-      {{ chapter.title | upper }}
+      {% filter upper %}{{ chapter.title }}{% endfilter %}
       {% endif %}
     </h1>
 
