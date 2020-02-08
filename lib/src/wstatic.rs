@@ -1,12 +1,12 @@
-use std::path::PathBuf;
-use std::fs::{create_dir, read_to_string};
 use serde_json::json;
-use tera::{Tera, Context};
+use std::fs::{create_dir, read_to_string};
+use std::path::PathBuf;
+use tera::{Context, Tera};
 
-use crate::error::{Raise, Error};
-use crate::project::{Cover, Project, Language, Chapter};
-use crate::BookWriter;
 use crate::assets::template_dir;
+use crate::error::{Error, Raise};
+use crate::project::{Chapter, Cover, Language, Project};
+use crate::BookWriter;
 
 pub struct Static {
     base : PathBuf,
@@ -15,7 +15,6 @@ pub struct Static {
 
 impl BookWriter for Static {
     fn write_bytes(&mut self, dst : &PathBuf, input : &[u8]) -> Result<(), Error> {
-
         std::fs::write(&self.base.join(dst), input)
             .or_raise(&format!("Could not write content to file {:?}", dst))?;
 
@@ -23,8 +22,8 @@ impl BookWriter for Static {
     }
 
     fn write_file(&mut self, dst : &PathBuf, src : &PathBuf) -> Result<(), Error> {
-        let input = read_to_string(src)
-            .or_raise(&format!("Could not read content of file {:?}", src))?;
+        let input =
+            read_to_string(src).or_raise(&format!("Could not read content of file {:?}", src))?;
 
         self.write_bytes(dst, input.as_bytes())?;
 
@@ -40,12 +39,14 @@ impl Static {
 
         if base.is_dir() {
             Ok(Static {
-                base : base.to_owned()
                 base : base.to_owned(),
                 body_only : body_only,
             })
         } else {
-            Err(Error::new(&format!("{:?} already exists and is not a directory", base)))
+            Err(Error::new(&format!(
+                "{:?} already exists and is not a directory",
+                base
+            )))
         }
     }
 
@@ -105,19 +106,13 @@ impl Static {
 
                 let path : PathBuf = PathBuf::from(format!("{}.html", idx));
 
-                self.write_template(
-                    &path,
-                    tera,
-                    "static/chapter.html",
-                    &ctx,
-                )?;
+                self.write_template(&path, tera, "static/chapter.html", &ctx)?;
 
                 Ok(())
             })
             .collect::<Result<Vec<()>, Error>>()?;
 
         Ok(())
-
     }
 
     pub fn generate_static_website(
@@ -126,8 +121,7 @@ impl Static {
         assets : &PathBuf,
     ) -> Result<(), Error> {
         let tera =
-            Tera::new(template_dir(assets)?.as_str())
-            .or_raise("Could not build templates")?;
+            Tera::new(template_dir(assets)?.as_str()).or_raise("Could not build templates")?;
 
         self.generate_index(project, &tera)?;
         self.generate_chapters(

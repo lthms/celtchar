@@ -105,13 +105,11 @@ fn main() -> Result<(), Error> {
 
     match matches.subcommand() {
         ("epub", _) => build_epub(&assets)?,
-        ("static",Some(args)) => {
+        ("static", Some(args)) => {
             let body_only = args.is_present("body-only");
-            let output_dir = PathBuf::from(
-                args.value_of("output").unwrap_or("out")
-            );
+            let output_dir = PathBuf::from(args.value_of("output").unwrap_or("out"));
             build_static(&assets, body_only, &output_dir)?
-        },
+        }
         ("deps", _) => deps()?,
         _ => unimplemented!(),
     }
