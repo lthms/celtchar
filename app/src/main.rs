@@ -119,7 +119,6 @@ fn main_with_error() -> Result<(), Error> {
                         .long("output"),
                 ),
         )
-        .subcommand(SubCommand::with_name("build").about("Build a celtchar document"))
         .subcommand(SubCommand::with_name("deps").about("List dependencies of a celtchar document"))
         .get_matches();
 
