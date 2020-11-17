@@ -51,6 +51,7 @@ fn canonicalize_project(
     Ok(Project {
         author : project.author,
         title : project.title,
+        description : project.description,
         cover : project
             .cover
             .map(canonicalize)

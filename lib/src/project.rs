@@ -77,6 +77,7 @@ impl<I> Chapter<Vec<I>> {
 pub struct Project<C, I> {
     pub author : String,
     pub title : String,
+    pub description : Option<String>,
     pub chapters : Vec<Chapter<I>>,
     pub cover : Option<C>,
     pub numbering : Option<bool>,
@@ -96,6 +97,7 @@ impl Project<Cover, String> {
         let lang = project.language;
         let typo = lang.typography();
         let numbering = project.numbering;
+        let descr = project.description;
         let author = project.author;
         let title = project.title;
         let cover = project
@@ -111,6 +113,7 @@ impl Project<Cover, String> {
             .map(|x| Project {
                 author : author,
                 title : title,
+                description : descr,
                 chapters : x,
                 cover : cover,
                 numbering : numbering,

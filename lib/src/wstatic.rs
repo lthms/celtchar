@@ -72,6 +72,7 @@ impl Static {
         ctx.insert("language", &project.language);
         ctx.insert("title", &project.title);
         ctx.insert("body_only", &self.body_only);
+        ctx.insert("description", &project.description);
 
         self.write_template(
             &PathBuf::from("index.html"),
@@ -98,9 +99,9 @@ impl Static {
             .map(|(idx, c)| {
                 let mut ctx = Context::new();
                 ctx.insert("number", &(idx + 1));
-                ctx.insert("chapter", &c);
+                ctx.insert("chapter", c);
                 ctx.insert("numbering", &numbering);
-                ctx.insert("language", &lang);
+                ctx.insert("language", lang);
                 ctx.insert("body_only", &self.body_only);
                 ctx.insert("chapters_number", &max);
 
