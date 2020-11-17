@@ -69,6 +69,7 @@ impl Static {
 
         let mut ctx = Context::new();
         ctx.insert("chapters", &chaps);
+        ctx.insert("numbering", &project.numbering);
         ctx.insert("language", &project.language);
         ctx.insert("title", &project.title);
         ctx.insert("body_only", &self.body_only);

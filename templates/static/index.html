@@ -9,10 +9,27 @@
   </head>
   <body>
 {% endif %}
-    <h1>{{ title | upper }}</h1>
-    <ul>
+    <h1>{{ title }}</h1>
+
+    {% if description %}
+    <p class="description">
+      {{ description | safe }}
+    </p>
+    {% endif %}
+
+    <ul class="toc">
     {% for info in chapters %}
-    <li><a href="{{info.index}}.html">{{ info.index + 1 }}. {{ info.title }}</a></li>
+    <li>
+      <a href="{{info.index}}.html">
+        {% if numbering and info.title %}
+        Chapitre {{ info.index + 1 }}. {{ info.title }}
+        {% elif not info.title %}
+        Chapitre {{ info.index + 1 }}
+        {% else %}
+        {{ info.title }}
+        {% endif %}
+      </a>
+    </li>
     {% endfor %}
     </ul>
 {% if not body_only %}
