@@ -1,14 +1,17 @@
-TEMPLATES := $(wildcard templates/*)
-FONTS     := $(wildcard fonts/*)
+EPUB_TPL   := $(wildcard templates/epub/*)
+STATIC_TPL := $(wildcard templates/static/*)
+FONTS      := $(wildcard fonts/*)
 
 release:
 	@cargo build --release
 
 install: release
 	@sudo -k # always ask user password
-	@sudo install -dv /usr/local/share/celtchar/templates \
+	@sudo install -dv /usr/local/share/celtchar/templates/epub \
+	                  /usr/local/share/celtchar/templates/static \
 	                  /usr/local/share/celtchar/fonts
-	@sudo install -v ${TEMPLATES} /usr/local/share/celtchar/templates
+	@sudo install -v ${EPUB_TPL} /usr/local/share/celtchar/templates/epub
+	@sudo install -v ${STATIC_TPL} /usr/local/share/celtchar/templates/static
 	@sudo install -v ${FONTS} /usr/local/share/celtchar/fonts
 	@sudo install -v target/release/celtchar /usr/local/bin/celtchar
 
