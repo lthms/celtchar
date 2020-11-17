@@ -70,14 +70,28 @@ fn wc() -> Result<(), Error> {
     let project : Project<_, Digest> = Project::load_and_render(&root, &loader)?;
 
     let mut res = 0usize;
+    let mut idx = 1usize;
 
     for c in project.chapters {
+        let mut curr = 0usize;
+
         for d in c.content {
-            res += d.words_count;
+            curr += d.words_count;
         }
+
+        println!(
+            "{} ({})",
+            c.title
+                .map(|x| format!("{}. {}", idx, x))
+                .unwrap_or(format!("Chapter {}", idx)),
+            curr
+        );
+
+        res += curr;
+        idx += 1;
     }
 
-    println!("{}", res);
+    println!("Total: {}", res);
 
     Ok(())
 }
