@@ -16,6 +16,8 @@ use libceltchar::Raise;
 #[cfg(debug_assertions)]
 use std::env::current_dir;
 
+use ogmarkup::stats::Digest;
+
 mod filesystem;
 use crate::filesystem::{find_root, Fs};
 
@@ -61,6 +63,25 @@ fn build_static(assets : &PathBuf, body_only : bool, out : &PathBuf) -> Result<(
     Ok(())
 }
 
+fn wc() -> Result<(), Error> {
+    let root = find_root()?;
+    let loader = Fs;
+
+    let project : Project<_, Digest> = Project::load_and_render(&root, &loader)?;
+
+    let mut res = 0usize;
+
+    for c in project.chapters {
+        for d in c.content {
+            res += d.words_count;
+        }
+    }
+
+    println!("{}", res);
+
+    Ok(())
+}
+
 #[cfg(debug_assertions)]
 fn get_assets() -> Result<PathBuf, Error> {
     current_dir().or_raise("cannot get current directory")
@@ -77,6 +98,7 @@ fn main_with_error() -> Result<(), Error> {
         .author("Thomas Letan")
         .about("A tool to generate novels")
         .subcommand(SubCommand::with_name("new").about("Create a new celtchar document"))
+        .subcommand(SubCommand::with_name("wc").about("World count"))
         .subcommand(SubCommand::with_name("epub").about("Build a epub"))
         .subcommand(
             SubCommand::with_name("static")
@@ -104,6 +126,7 @@ fn main_with_error() -> Result<(), Error> {
     let assets : PathBuf = get_assets()?;
 
     match matches.subcommand() {
+        ("wc", _) => wc()?,
         ("epub", _) => build_epub(&assets)?,
         ("static", Some(args)) => {
             let body_only = args.is_present("body-only");
