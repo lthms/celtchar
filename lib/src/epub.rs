@@ -14,6 +14,7 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::assets::{fonts_dir, template_dir};
+use crate::render::Html;
 use crate::writer::BookWriter;
 
 const EPUB_MIMETYPE : &'static str = "application/epub+zip";
@@ -35,7 +36,7 @@ pub trait EpubWriter: BookWriter {
     fn create_chapters(
         &mut self,
         tera : &Tera,
-        chapters : &Vec<Chapter<String>>,
+        chapters : &Vec<Chapter<Html>>,
         numbering : bool,
         lang : &Language,
     ) -> Result<(), Error> {
@@ -83,7 +84,7 @@ pub trait EpubWriter: BookWriter {
 
     fn generate_epub(
         &mut self,
-        project : &Project<Cover, String>,
+        project : &Project<Cover, Html>,
         assets : &PathBuf,
     ) -> Result<(), Error> {
         let tera =

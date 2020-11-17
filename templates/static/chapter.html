@@ -41,7 +41,9 @@
     </h1>
 
     <article class="ogmarkup">
-      {{ chapter.content | safe }}
+      {% for content in chapter.content %}
+      {{ content | safe }}
+      {% endfor %}
     </article>
 {% if not body_only %}
   </body>

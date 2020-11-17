@@ -1,8 +1,8 @@
+use ogmarkup::generator::Output;
 use ogmarkup::typography::{Typography, ENGLISH, FRENCH};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::error::{Error, Raise};
-use crate::render::Html;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Language {
@@ -34,23 +34,21 @@ pub trait Loader {
 
     fn load_document(&self, id : &Self::DocId) -> Result<String, Error>;
 
-    fn load_project(
-        &self,
-        id : &Self::ProjId,
-    ) -> Result<Project<Self::CovId, Vec<Self::DocId>>, Error>;
+    fn load_project(&self, id : &Self::ProjId) -> Result<Project<Self::CovId, Self::DocId>, Error>;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chapter<I> {
     pub title : Option<String>,
-    pub content : I,
+    pub content : Vec<I>,
 }
 
-impl<I> Chapter<Vec<I>> {
-    fn load_and_render<T, L>(&self, loader : &L, typo : &T) -> Result<Chapter<String>, Error>
+impl<I> Chapter<I> {
+    fn load_and_render<T, L, O>(&self, loader : &L, typo : &T) -> Result<Chapter<O>, Error>
     where
         T : Typography + ?Sized,
         L : Loader<DocId = I>,
+        O : Output,
     {
         let title = &self.title;
         let content = &self.content;
@@ -61,10 +59,8 @@ impl<I> Chapter<Vec<I>> {
                 let input = loader.load_document(x)?;
                 ogmarkup::compile(&input, typo)
                     .or_raise("Cannot parse an ogmarkup document for some reason")
-                    .map(Html::to_string)
             })
-            .collect::<Result<Vec<String>, Error>>()?
-            .join("");
+            .collect::<Result<Vec<O>, Error>>()?;
 
         Ok(Chapter {
             title : title.clone(),
@@ -84,13 +80,14 @@ pub struct Project<C, I> {
     pub language : Language,
 }
 
-impl Project<Cover, String> {
+impl<O> Project<Cover, O> {
     pub fn load_and_render<'input, L>(
         id : &L::ProjId,
         loader : &L,
-    ) -> Result<Project<Cover, String>, Error>
+    ) -> Result<Project<Cover, O>, Error>
     where
         L : Loader,
+        O : Output,
     {
         let project = loader.load_project(id)?;
 
@@ -109,7 +106,7 @@ impl Project<Cover, String> {
             .chapters
             .into_iter()
             .map(|chapter| chapter.load_and_render(loader, typo))
-            .collect::<Result<Vec<Chapter<String>>, Error>>()
+            .collect::<Result<Vec<Chapter<O>>, Error>>()
             .map(|x| Project {
                 author : author,
                 title : title,

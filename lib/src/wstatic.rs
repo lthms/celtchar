@@ -6,6 +6,7 @@ use tera::{Context, Tera};
 use crate::assets::template_dir;
 use crate::error::{Error, Raise};
 use crate::project::{Chapter, Cover, Language, Project};
+use crate::render::Html;
 use crate::BookWriter;
 
 pub struct Static {
@@ -52,7 +53,7 @@ impl Static {
 
     fn generate_index(
         &mut self,
-        project : &Project<Cover, String>,
+        project : &Project<Cover, Html>,
         tera : &Tera,
     ) -> Result<(), Error> {
         let chaps : Vec<_> = project
@@ -88,7 +89,7 @@ impl Static {
     fn generate_chapters(
         &mut self,
         tera : &Tera,
-        chapters : &Vec<Chapter<String>>,
+        chapters : &Vec<Chapter<Html>>,
         numbering : bool,
         lang : &Language,
     ) -> Result<(), Error> {
@@ -119,7 +120,7 @@ impl Static {
 
     pub fn generate_static_website(
         &mut self,
-        project : &Project<Cover, String>,
+        project : &Project<Cover, Html>,
         assets : &PathBuf,
     ) -> Result<(), Error> {
         let tera =

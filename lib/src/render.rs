@@ -1,6 +1,7 @@
 use ogmarkup::generator::Output;
 use ogmarkup::typography::Space;
 
+#[derive(Serialize)]
 pub struct Html(String);
 
 impl Html {

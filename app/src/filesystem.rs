@@ -33,7 +33,7 @@ pub fn find_root() -> Result<PathBuf, Error> {
     }
 }
 
-fn canonicalize_chapter(chapter : &Chapter<Vec<PathBuf>>) -> Result<Chapter<Vec<PathBuf>>, Error> {
+fn canonicalize_chapter(chapter : &Chapter<PathBuf>) -> Result<Chapter<PathBuf>, Error> {
     let title = chapter.title.clone();
     Ok(Chapter {
         title : title,
@@ -46,8 +46,8 @@ fn canonicalize_chapter(chapter : &Chapter<Vec<PathBuf>>) -> Result<Chapter<Vec<
 }
 
 fn canonicalize_project(
-    project : Project<PathBuf, Vec<PathBuf>>,
-) -> Result<Project<PathBuf, Vec<PathBuf>>, Error> {
+    project : Project<PathBuf, PathBuf>,
+) -> Result<Project<PathBuf, PathBuf>, Error> {
     Ok(Project {
         author : project.author,
         title : project.title,
@@ -72,7 +72,7 @@ impl Loader for Fs {
     type CovId = PathBuf;
     type DocId = PathBuf;
 
-    fn load_project(&self, id : &PathBuf) -> Result<Project<PathBuf, Vec<PathBuf>>, Error> {
+    fn load_project(&self, id : &PathBuf) -> Result<Project<PathBuf, PathBuf>, Error> {
         let cwd = current_dir().or_raise("could not get current dir")?;
 
         let input =

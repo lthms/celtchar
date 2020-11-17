@@ -25,7 +25,9 @@
     </h1>
     {% endif %}
     <div class="ogmarkup">
-      {{ chapter.content }}
+      {% for content in chapter.content %}
+      {{ content | safe }}
+      {% endfor %}
     </div>
   </body>
 </html>
