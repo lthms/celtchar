@@ -184,10 +184,12 @@ impl Zip {
     fn create_parent(&mut self, dst : &PathBuf) -> Result<(), Error> {
         if let Some(dir) = dst.parent() {
             if self.dirs.contains(dir) {
-                self.output
-                    .add_directory_from_path(dir, FileOptions::default())
-                    .or_raise(&format!("Could not create directory {:?}", dir))?;
-                self.dirs.insert(dir.to_path_buf());
+                if let Some(dir_str) = dir.to_str() {
+                    self.output
+                        .add_directory(dir_str, FileOptions::default())
+                        .or_raise(&format!("Could not create directory {:?}", dir))?;
+                    self.dirs.insert(dir.to_path_buf());
+                }
             }
         }
 
@@ -199,32 +201,36 @@ impl BookWriter for Zip {
     fn write_bytes(&mut self, dst : &PathBuf, input : &[u8]) -> Result<(), Error> {
         self.create_parent(dst)?;
 
-        self.output
-            .start_file_from_path(dst, FileOptions::default())
-            .or_raise(&format!("Could not add file {:?} to archive", dst))?;
+        if let Some(dst) = dst.to_str() {
+            self.output
+                .start_file(dst, FileOptions::default())
+                .or_raise(&format!("Could not add file {:?} to archive", dst))?;
 
-        self.output
-            .write_all(input)
-            .or_raise(&format!("Could not write {:?} content", dst))?;
+            self.output
+                .write_all(input)
+                .or_raise(&format!("Could not write {:?} content", dst))?;
+        }
 
         Ok(())
     }
 
     fn write_file(&mut self, dst : &PathBuf, src : &PathBuf) -> Result<(), Error> {
-        let mut buffer = Vec::new();
-        let mut f = File::open(src).or_raise(&format!("Could not open {:?}", src))?;
-        f.read_to_end(&mut buffer)
-            .or_raise(&format!("Could not read {:?} content", src))?;
+        if let Some(dst_str) = dst.to_str() {
+            let mut buffer = Vec::new();
+            let mut f = File::open(src).or_raise(&format!("Could not open {:?}", src))?;
+            f.read_to_end(&mut buffer)
+                .or_raise(&format!("Could not read {:?} content", src))?;
 
-        self.create_parent(dst)?;
+            self.create_parent(dst)?;
 
-        self.output
-            .start_file_from_path(dst, FileOptions::default())
-            .or_raise(&format!("Could not add file {:?} to archive", dst))?;
+            self.output
+                .start_file(dst_str, FileOptions::default())
+                .or_raise(&format!("Could not add file {:?} to archive", dst))?;
 
-        self.output
-            .write_all(buffer.as_ref())
-            .or_raise(&format!("Could not write {:?} content", dst))?;
+            self.output
+                .write_all(buffer.as_ref())
+                .or_raise(&format!("Could not write {:?} content", dst))?;
+        }
 
         Ok(())
     }
