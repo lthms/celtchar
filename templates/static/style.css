@@ -22,6 +22,10 @@ h1 .title {
     display: block;
 }
 
+h1 .title-number {
+  font-size: 50%;
+    display: block;
+}
 
 p {
     text-indent: 1.5rem;
@@ -43,6 +47,17 @@ p {
 
 .ogmarkup {
     text-align: justify;
+}
+
+.ogmarkup .story:first-of-type p:first-of-type {
+  text-indent: 0 !important;
+}
+
+.ogmarkup .story:first-of-type p:first-of-type:first-letter {
+  float: left;
+  font-size: 3em;
+  font-style: normal;
+  margin: .15em .2em 0 0;
 }
 
 .ogmarkup .date {
