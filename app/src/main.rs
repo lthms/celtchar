@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 use clap::{App, Arg, SubCommand};
 
-use libceltchar::{EpubWriter, Error, Loader, Project, Static, Zip};
+use libceltchar::{Chapter, Content, EpubWriter, Error, Loader, Part, Project, Static, Zip};
 
 #[cfg(debug_assertions)]
 use libceltchar::Raise;
@@ -28,8 +28,8 @@ fn deps() -> Result<(), Error> {
 
     let mut files = vec![];
 
-    for mut chapter in project.chapters.into_iter() {
-        files.append(&mut chapter.content)
+    for chapter in project.content.chapters() {
+        files.append(&mut chapter.content.clone())
     }
 
     for file in files {
@@ -39,7 +39,7 @@ fn deps() -> Result<(), Error> {
     Ok(())
 }
 
-fn build_epub(assets : &PathBuf) -> Result<(), Error> {
+fn build_epub(assets: &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
     let loader = Fs;
 
@@ -51,7 +51,7 @@ fn build_epub(assets : &PathBuf) -> Result<(), Error> {
     Ok(())
 }
 
-fn build_static(assets : &PathBuf, body_only : bool, out : &PathBuf) -> Result<(), Error> {
+fn build_static(assets: &PathBuf, body_only: bool, out: &PathBuf) -> Result<(), Error> {
     let root = find_root()?;
     let loader = Fs;
 
@@ -63,25 +63,20 @@ fn build_static(assets : &PathBuf, body_only : bool, out : &PathBuf) -> Result<(
     Ok(())
 }
 
-fn wc() -> Result<(), Error> {
-    let root = find_root()?;
-    let loader = Fs;
+fn wc_chapters(chapters: &Vec<Chapter<Digest>>, mut idx: usize) -> usize {
+    let mut res = 0;
 
-    let project : Project<_, Digest> = Project::load_and_render(&root, &loader)?;
-
-    let mut res = 0usize;
-    let mut idx = 1usize;
-
-    for c in project.chapters {
+    for c in chapters {
         let mut curr = 0usize;
 
-        for d in c.content {
+        for d in c.content.iter() {
             curr += d.words_count;
         }
 
         println!(
             "{} ({})",
             c.title
+                .as_ref()
                 .map(|x| format!("{}. {}", idx, x))
                 .unwrap_or(format!("Chapter {}", idx)),
             curr
@@ -90,6 +85,61 @@ fn wc() -> Result<(), Error> {
         res += curr;
         idx += 1;
     }
+
+    res
+}
+
+fn wc_parts(parts: &Vec<Part<Digest>>) -> usize {
+    let mut res = 0;
+    let mut idx = 1;
+    let mut chap_idx = 1;
+
+    for p in parts {
+        let part_count = p.content.iter().fold(0, |acc, chap| {
+            chap.content.iter().fold(acc, |acc, d| acc + d.words_count)
+        });
+
+        println!(
+            "{} ({})",
+            p.title
+                .as_ref()
+                .map(|x| format!("{}. {}", idx, x))
+                .unwrap_or(format!("Part {}", idx)),
+            part_count
+        );
+
+        for c in &p.content {
+            let chap_count = c.content.iter().fold(0, |acc, d| acc + d.words_count);
+
+            println!(
+                "  {} ({})",
+                c.title
+                    .as_ref()
+                    .map(|x| format!("{}. {}", chap_idx, x))
+                    .unwrap_or(format!("Chapter {}", chap_idx)),
+                chap_count
+            );
+
+            chap_idx += 1;
+        }
+
+        res += part_count;
+        idx += 1;
+    }
+
+    res
+}
+
+fn wc() -> Result<(), Error> {
+    let root = find_root()?;
+    let loader = Fs;
+
+    let project: Project<_, Digest> = Project::load_and_render(&root, &loader)?;
+
+    let res = match project.content {
+        Content::WithChapters(ref chaps) => wc_chapters(chaps, 0),
+        Content::WithParts(ref parts) => wc_parts(parts),
+    };
 
     println!("Total: {}", res);
 
@@ -136,7 +186,7 @@ fn main_with_error() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("deps").about("List dependencies of a celtchar document"))
         .get_matches();
 
-    let assets : PathBuf = get_assets()?;
+    let assets: PathBuf = get_assets()?;
 
     match matches.subcommand() {
         ("wc", _) => wc()?,

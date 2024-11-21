@@ -4,19 +4,15 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ chapter.title }}</title>
+    <title>{{ title }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.1.7/css/fork-awesome.min.css" integrity="sha256-gsmEoJAws/Kd3CjuOQzLie5Q3yshhvmo7YNtBG7aaEY=" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
 {% endif %}
     <nav>
-    {% if 1 < number %}
-      <a href="{{ offset + number - 2 }}.html" class="nav_item">
-        <i class="fa fa-arrow-left" aria-hidden="true"></i>
-      </a>
-    {% elif previous_part == 0 or previous_part %}
-      <a href="p{{ previous_part }}.html" class="nav_item">
+    {% if 0 < offset %}
+      <a href="{{ offset - 1 }}.html" class="nav_item">
         <i class="fa fa-arrow-left" aria-hidden="true"></i>
       </a>
     {% else %}
@@ -25,12 +21,12 @@
       <a href="index.html" class="nav_item">
         <i class="fa fa-home" aria-hidden="true"></i>
       </a>
-    {% if number < chapters_number %}
-      <a href="{{ offset + number }}.html" class="nav_item">
+    {% if 0 < chapters_number %}
+      <a href="{{ offset }}.html" class="nav_item">
         <i class="fa fa-arrow-right" aria-hidden="true"></i>
       </a>
-    {% elif next_part %}
-      <a href="p{{ next_part }}.html" class="nav_item">
+    {% elif number < parts_number %}
+      <a href="p{{ number }}.html" class="nav_item">
         <i class="fa fa-arrow-right" aria-hidden="true"></i>
       </a>
     {% else %}
@@ -39,21 +35,21 @@
     </nav>
 
     <h1>
-      {% if numbering %}
+      {% if numbering and not title %}
+      Partie {{ number | roman }}
+      {% elif numbering and title %}
       <span class="title-number">
-        – {{ offset + number }} –
+      – {{ number | roman }} –
       </span>
+      {{ title | upper }}
+      {% elif title %}
+      {{ title | upper }}
+      {% else %}
+      Partie {{ number | roman }}
       {% endif %}
-      {{ chapter.title }}
-      </span>
     </h1>
-
-    <article class="ogmarkup">
-      {% for content in chapter.content %}
-      {{ content | safe }}
-      {% endfor %}
-    </article>
 {% if not body_only %}
   </body>
 </html>
 {% endif %}
+

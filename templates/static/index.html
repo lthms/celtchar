@@ -18,6 +18,36 @@
     {% endif %}
 
     <ul class="toc">
+    {% if parts %}
+    {% for part in parts %}
+    <li>
+      <a href="p{{ part.index }}.html">
+      {% if numbering and part.title %}
+      Partie {{ part.index + 1 | roman }}. {{ part.title }}
+      {% elif not part.title %}
+      Partie {{ part.index + 1 | roman }}
+      {% else %}
+      {{ part.title }}
+      {% endif %}
+      </a>
+      <ul>
+      {% for info in part.chapters %}
+      <li>
+        <a href="{{info.index}}.html">
+          {% if numbering and info.title %}
+          Chapitre {{ info.index + 1 }}. {{ info.title }}
+          {% elif not info.title %}
+          Chapitre {{ info.index + 1 }}
+          {% else %}
+          {{ info.title }}
+          {% endif %}
+        </a>
+      </li>
+    {% endfor %}
+      </ul>
+    </li>
+    {% endfor %}
+    {% else %}
     {% for info in chapters %}
     <li>
       <a href="{{info.index}}.html">
@@ -31,6 +61,7 @@
       </a>
     </li>
     {% endfor %}
+    {% endif %}
     </ul>
 {% if not body_only %}
   </body>

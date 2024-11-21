@@ -21,8 +21,8 @@ impl Language {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Cover {
-    pub extension : String,
-    pub content : Vec<u8>,
+    pub extension: String,
+    pub content: Vec<u8>,
 }
 
 pub trait Loader {
@@ -30,25 +30,25 @@ pub trait Loader {
     type DocId;
     type ProjId;
 
-    fn load_cover(&self, id : &Self::CovId) -> Result<Cover, Error>;
+    fn load_cover(&self, id: &Self::CovId) -> Result<Cover, Error>;
 
-    fn load_document(&self, id : &Self::DocId) -> Result<String, Error>;
+    fn load_document(&self, id: &Self::DocId) -> Result<String, Error>;
 
-    fn load_project(&self, id : &Self::ProjId) -> Result<Project<Self::CovId, Self::DocId>, Error>;
+    fn load_project(&self, id: &Self::ProjId) -> Result<Project<Self::CovId, Self::DocId>, Error>;
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Chapter<I> {
-    pub title : Option<String>,
-    pub content : Vec<I>,
+    pub title: Option<String>,
+    pub content: Vec<I>,
 }
 
 impl<I> Chapter<I> {
-    fn load_and_render<T, L, O>(&self, loader : &L, typo : &T) -> Result<Chapter<O>, Error>
+    fn load_and_render<T, L, O>(&self, loader: &L, typo: &T) -> Result<Chapter<O>, Error>
     where
-        T : Typography + ?Sized,
-        L : Loader<DocId = I>,
-        O : Output,
+        T: Typography + ?Sized,
+        L: Loader<DocId = I>,
+        O: Output,
     {
         let title = &self.title;
         let content = &self.content;
@@ -63,31 +63,117 @@ impl<I> Chapter<I> {
             .collect::<Result<Vec<O>, Error>>()?;
 
         Ok(Chapter {
-            title : title.clone(),
-            content : doc,
+            title: title.clone(),
+            content: doc,
         })
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Part<I> {
+    pub title: Option<String>,
+    #[serde(rename = "chapters")]
+    pub content: Vec<Chapter<I>>,
+}
+
+impl<I> Part<I> {
+    fn load_and_render<T, L, O>(&self, loader: &L, typo: &T) -> Result<Part<O>, Error>
+    where
+        T: Typography + ?Sized,
+        L: Loader<DocId = I>,
+        O: Output,
+    {
+        let title = &self.title;
+        let content = &self.content;
+
+        let doc = content
+            .iter()
+            .map(|ref chap| chap.load_and_render(loader, typo))
+            .collect::<Result<Vec<Chapter<O>>, Error>>()?;
+
+        Ok(Part {
+            title: title.clone(),
+            content: doc,
+        })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Content<I> {
+    #[serde(rename = "parts")]
+    WithParts(Vec<Part<I>>),
+    #[serde(rename = "chapters")]
+    WithChapters(Vec<Chapter<I>>),
+}
+
+impl<I> Content<I> {
+    fn load_and_render<T, L, O>(&self, loader: &L, typo: &T) -> Result<Content<O>, Error>
+    where
+        T: Typography + ?Sized,
+        L: Loader<DocId = I>,
+        O: Output,
+    {
+        match self {
+            Content::WithParts(ref parts) => {
+                let parts = parts
+                    .iter()
+                    .map(|ref part| part.load_and_render(loader, typo))
+                    .collect::<Result<Vec<Part<O>>, Error>>()?;
+
+                Ok(Content::WithParts(parts))
+            }
+            Content::WithChapters(ref chapters) => {
+                let chapters = chapters
+                    .iter()
+                    .map(|ref chap| chap.load_and_render(loader, typo))
+                    .collect::<Result<Vec<Chapter<O>>, Error>>()?;
+
+                Ok(Content::WithChapters(chapters))
+            }
+        }
+    }
+
+    pub fn chapters(&self) -> Vec<&Chapter<I>> {
+        match self {
+            Content::WithChapters(ref chaps) => chaps.iter().collect(),
+            Content::WithParts(ref parts) => {
+                parts.iter().map(|p| p.content.iter()).flatten().collect()
+            }
+        }
+    }
+
+    pub fn mut_chapters(&mut self) -> Vec<&mut Chapter<I>> {
+        match self {
+            Content::WithChapters(ref mut chaps) => chaps.iter_mut().collect(),
+            Content::WithParts(ref mut parts) => parts
+                .iter_mut()
+                .map(|p| p.content.iter_mut())
+                .flatten()
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Project<C, I> {
-    pub author : String,
-    pub title : String,
-    pub description : Option<String>,
-    pub chapters : Vec<Chapter<I>>,
-    pub cover : Option<C>,
-    pub numbering : Option<bool>,
-    pub language : Language,
+    pub author: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub cover: Option<C>,
+    pub numbering: Option<bool>,
+    pub language: Language,
+    #[serde(flatten)]
+    pub content: Content<I>,
 }
 
 impl<O> Project<Cover, O> {
     pub fn load_and_render<'input, L>(
-        id : &L::ProjId,
-        loader : &L,
+        id: &L::ProjId,
+        loader: &L,
     ) -> Result<Project<Cover, O>, Error>
     where
-        L : Loader,
-        O : Output,
+        L: Loader,
+        O: Output,
     {
         let project = loader.load_project(id)?;
 
@@ -102,19 +188,16 @@ impl<O> Project<Cover, O> {
             .map(|x| loader.load_cover(&x).or_raise("cannot load the cover"))
             .map_or(Ok(None), |r| r.map(Some))?;
 
-        project
-            .chapters
-            .into_iter()
-            .map(|chapter| chapter.load_and_render(loader, typo))
-            .collect::<Result<Vec<Chapter<O>>, Error>>()
-            .map(|x| Project {
-                author : author,
-                title : title,
-                description : descr,
-                chapters : x,
-                cover : cover,
-                numbering : numbering,
-                language : lang,
-            })
+        let content = project.content.load_and_render(loader, typo)?;
+
+        Ok(Project {
+            author,
+            title,
+            description: descr,
+            content,
+            cover,
+            numbering,
+            language: lang,
+        })
     }
 }

@@ -17,14 +17,14 @@ use crate::assets::{fonts_dir, template_dir};
 use crate::render::Html;
 use crate::writer::BookWriter;
 
-const EPUB_MIMETYPE : &'static str = "application/epub+zip";
+const EPUB_MIMETYPE: &'static str = "application/epub+zip";
 
 pub trait EpubWriter: BookWriter {
     fn create_mimetype(&mut self) -> Result<(), Error> {
         self.write_bytes(&PathBuf::from("mimetype"), EPUB_MIMETYPE.as_bytes())
     }
 
-    fn create_container(&mut self, tera : &Tera) -> Result<(), Error> {
+    fn create_container(&mut self, tera: &Tera) -> Result<(), Error> {
         self.write_template(
             &PathBuf::from("META-INF/container.xml"),
             tera,
@@ -35,10 +35,10 @@ pub trait EpubWriter: BookWriter {
 
     fn create_chapters(
         &mut self,
-        tera : &Tera,
-        chapters : &Vec<Chapter<Html>>,
-        numbering : bool,
-        lang : &Language,
+        tera: &Tera,
+        chapters: Vec<&Chapter<Html>>,
+        numbering: bool,
+        lang: &Language,
     ) -> Result<(), Error> {
         chapters
             .iter()
@@ -50,7 +50,7 @@ pub trait EpubWriter: BookWriter {
                 ctx.insert("numbering", &numbering);
                 ctx.insert("language", &lang);
 
-                let path : String = format!("{}.xhtml", idx);
+                let path: String = format!("{}.xhtml", idx);
 
                 self.write_template(
                     &PathBuf::from(format!("OEBPS/Text/{}", path)),
@@ -66,7 +66,7 @@ pub trait EpubWriter: BookWriter {
         Ok(())
     }
 
-    fn install_fonts(&mut self, assets : &PathBuf, fonts : &Vec<&str>) -> Result<(), Error> {
+    fn install_fonts(&mut self, assets: &PathBuf, fonts: &Vec<&str>) -> Result<(), Error> {
         for f in fonts {
             let src = fonts_dir(assets)?.join(f);
             let dst = PathBuf::from("OEBPS/Fonts").join(f);
@@ -77,15 +77,15 @@ pub trait EpubWriter: BookWriter {
         Ok(())
     }
 
-    fn install_cover(&mut self, cover : &Cover) -> Result<(), Error> {
+    fn install_cover(&mut self, cover: &Cover) -> Result<(), Error> {
         let dst = PathBuf::from("OEBPS").join(format!("cover.{}", cover.extension));
         self.write_bytes(&dst, cover.content.as_slice())
     }
 
     fn generate_epub(
         &mut self,
-        project : &Project<Cover, Html>,
-        assets : &PathBuf,
+        project: &Project<Cover, Html>,
+        assets: &PathBuf,
     ) -> Result<(), Error> {
         let tera =
             Tera::new(template_dir(assets)?.as_str()).or_raise("Could not build templates")?;
@@ -95,7 +95,7 @@ pub trait EpubWriter: BookWriter {
 
         self.create_chapters(
             &tera,
-            &project.chapters,
+            project.content.chapters(),
             project.numbering.unwrap_or(false),
             &project.language,
         )?;
@@ -120,7 +120,8 @@ pub trait EpubWriter: BookWriter {
         self.install_fonts(assets, &fonts)?;
 
         let files = project
-            .chapters
+            .content
+            .chapters()
             .iter()
             .enumerate()
             .map(|(idx, _)| idx)
@@ -144,8 +145,9 @@ pub trait EpubWriter: BookWriter {
             &ctx,
         )?;
 
-        let chaps : Vec<_> = project
-            .chapters
+        let chaps: Vec<_> = project
+            .content
+            .chapters()
             .iter()
             .enumerate()
             .map(|(idx, chapter)| {
@@ -164,11 +166,11 @@ pub trait EpubWriter: BookWriter {
     }
 }
 
-impl<W> EpubWriter for W where W : BookWriter {}
+impl<W> EpubWriter for W where W: BookWriter {}
 
 pub struct Zip {
-    output : ZipWriter<File>,
-    dirs : HashSet<PathBuf>,
+    output: ZipWriter<File>,
+    dirs: HashSet<PathBuf>,
 }
 
 impl Zip {
@@ -176,12 +178,12 @@ impl Zip {
         let file = File::create("Book.epub").or_raise("Could not create Book.epub")?;
 
         Ok(Zip {
-            output : ZipWriter::new(file),
-            dirs : HashSet::new(),
+            output: ZipWriter::new(file),
+            dirs: HashSet::new(),
         })
     }
 
-    fn create_parent(&mut self, dst : &PathBuf) -> Result<(), Error> {
+    fn create_parent(&mut self, dst: &PathBuf) -> Result<(), Error> {
         if let Some(dir) = dst.parent() {
             if self.dirs.contains(dir) {
                 if let Some(dir_str) = dir.to_str() {
@@ -198,7 +200,7 @@ impl Zip {
 }
 
 impl BookWriter for Zip {
-    fn write_bytes(&mut self, dst : &PathBuf, input : &[u8]) -> Result<(), Error> {
+    fn write_bytes(&mut self, dst: &PathBuf, input: &[u8]) -> Result<(), Error> {
         self.create_parent(dst)?;
 
         if let Some(dst) = dst.to_str() {
@@ -214,7 +216,7 @@ impl BookWriter for Zip {
         Ok(())
     }
 
-    fn write_file(&mut self, dst : &PathBuf, src : &PathBuf) -> Result<(), Error> {
+    fn write_file(&mut self, dst: &PathBuf, src: &PathBuf) -> Result<(), Error> {
         if let Some(dst_str) = dst.to_str() {
             let mut buffer = Vec::new();
             let mut f = File::open(src).or_raise(&format!("Could not open {:?}", src))?;

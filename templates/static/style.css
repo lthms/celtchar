@@ -103,3 +103,7 @@ nav {
     font-size: 130%;
     color: #333;
 }
+
+.description {
+  text-align: justify;
+}

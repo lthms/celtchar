@@ -15,6 +15,6 @@ mod wstatic;
 
 pub use epub::{EpubWriter, Zip};
 pub use error::{Error, Raise};
-pub use project::{Chapter, Cover, Loader, Project};
+pub use project::{Chapter, Content, Cover, Loader, Part, Project};
 pub use writer::BookWriter;
 pub use wstatic::Static;
