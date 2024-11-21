@@ -1,4 +1,4 @@
-extern crate ogmarkup;
+extern crate ogam;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;

@@ -1,6 +1,6 @@
 extern crate clap;
 extern crate libceltchar;
-extern crate ogmarkup;
+extern crate ogam;
 extern crate serde_json;
 extern crate tera;
 extern crate toml;
@@ -16,7 +16,7 @@ use libceltchar::Raise;
 #[cfg(debug_assertions)]
 use std::env::current_dir;
 
-use ogmarkup::stats::Digest;
+use ogam::stats::Digest;
 
 mod filesystem;
 use crate::filesystem::{find_root, Fs};

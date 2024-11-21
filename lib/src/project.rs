@@ -1,5 +1,5 @@
-use ogmarkup::generator::Output;
-use ogmarkup::typography::{Typography, ENGLISH, FRENCH};
+use ogam::generator::Output;
+use ogam::typography::{Typography, ENGLISH, FRENCH};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::error::{Error, Raise};
@@ -57,7 +57,7 @@ impl<I> Chapter<I> {
             .iter()
             .map(|ref x| {
                 let input = loader.load_document(x)?;
-                ogmarkup::compile(&input, typo)
+                ogam::compile(&input, typo)
                     .or_raise("Cannot parse an ogmarkup document for some reason")
             })
             .collect::<Result<Vec<O>, Error>>()?;
